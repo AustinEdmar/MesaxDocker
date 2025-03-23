@@ -62,11 +62,12 @@ salva e sai rodo para tornar o script executavel
 21 - 
 git init
 
+22 - 
 git remote add origin ssh://docker@192.168.0.118/home/docker/repo/site.git
 
 git add .
 
-22 - add mysql mas ao os arquivos 
+23 - add mysql mas ao os arquivos 
 
 23 / git rm -r --cached mysql/*
 
@@ -78,7 +79,9 @@ git add .
 
 27 - git branch -M main
 git push origin main
-
+sudo chown -R docker:docker /home/docker/repo/site.git
+sudo chmod -R 775 /home/docker/repo/site.git
+sudo chown -R docker:docker /home/docker/site
 
 copiar a config ssh do root para o docker
 
