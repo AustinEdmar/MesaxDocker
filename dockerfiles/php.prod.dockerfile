@@ -35,7 +35,7 @@ RUN pecl install redis \
     && docker-php-ext-enable redis
 
 ADD ./src/ /var/www/html
-
+# teste
 USER laravel
 
 CMD ["php-fpm", "-y", "/usr/local/etc/php-fpm.conf", "-R"]
