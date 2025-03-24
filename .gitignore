@@ -2,6 +2,6 @@
 .DS_Store
 .idea
 vendor
-mysql
+mysql/*
 
 
