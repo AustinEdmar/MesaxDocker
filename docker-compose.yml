@@ -15,7 +15,7 @@ services:
     ports:
       - "80:80"
     volumes:
-      - ./src:/var/www/html:cached
+      - ./src:/var/www/html:delegated
     depends_on:
       - php
       - redis
@@ -54,7 +54,7 @@ services:
     ports:
       - "9000:9000"
     volumes:
-      - ./src:/var/www/html:cached
+      - ./src:/var/www/html:delegated
     networks:
       - laravel
 
@@ -103,7 +103,7 @@ services:
         - GID=${GID:-1000}
     volumes:
     - ./src:/var/www/html:delegated
-       # - ./src:/var/www/html:cached
+       # - ./src:/var/www/html:delegated
     depends_on:
       - mysql
     entrypoint: [ 'php', '/var/www/html/artisan' ]
@@ -118,7 +118,7 @@ services:
         - UID=${UID:-1000}
         - GID=${GID:-1000}
     volumes:
-      - ./src:/var/www/html:cached
+      - ./src:/var/www/html:delegated
     depends_on:
       - mysql
       - redis

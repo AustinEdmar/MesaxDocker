@@ -69,7 +69,9 @@ git add .
 
 23 - add mysql mas ao os arquivos 
 
-23 / git rm -r --cached mysql/*
+23 / git rm -r --cached mysql/* no git ignore nao pode ter a pasta se nao a versiona
+git rm -r --cached mysql
+
 
 24 - git add .
 
@@ -162,4 +164,43 @@ sudo chmod -R 777 ./src/routes
 # Verificar novamente as permissões de storage (incluindo subdiretórios)
 sudo chmod -R 777 ./src/storage
 
+
+
+#### deploy em production  trocar yml prod
+
+nginx.prod.dockerfile
+php.prod.dockerfile
+docker-compose.prod.yml
+
 docker-compose -f docker-compose.prod.yml up -d --build app
+
+9 - # Instalar dependências npm
+docker-compose -f docker-compose.prod.yml run --rm npm install
+
+# Construir assets para produção
+docker-compose -f docker-compose.prod.yml run --rm npm run build
+
+# Rodar migrações
+docker-compose -f docker-compose.prod.yml run --rm artisan migrate
+
+# Instalar dependências do Composer
+docker-compose -f docker-compose.prod.yml run --rm composer install --optimize-autoloader
+
+# Executar testes, se necessário
+docker-compose -f docker-compose.prod.yml run --rm pest
+
+
+reverb:
+    build:
+      context: ./dockerfiles
+      dockerfile: reverb.dockerfile
+  
+    container_name: reverb
+  
+    ports:
+      - 8080:8080
+    volumes:
+      - ./src:/var/www/html:delegated
+    working_dir: /var/www/html
+    networks:
+      - laravel
