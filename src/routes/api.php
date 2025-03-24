@@ -9,6 +9,6 @@ Route::get('/user', function (Request $request) {
 
 
 Route::get('/teste', function () {
-    return 'Api funcionando ok';
+    return 'ta fofo funcionando ok';
 });
 

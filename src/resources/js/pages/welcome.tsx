@@ -18,7 +18,7 @@ export default function Welcome() {
                                 href={route('dashboard')}
                                 className="inline-block rounded-sm border border-[#19140035] px-5 py-1.5 text-sm leading-normal text-[#1b1b18] hover:border-[#1915014a] dark:border-[#3E3E3A] dark:text-[#EDEDEC] dark:hover:border-[#62605b]"
                             >
-                                Dashboard
+                                Dashboards
                             </Link>
                         ) : (
                             <>
@@ -26,7 +26,7 @@ export default function Welcome() {
                                     href={route('login')}
                                     className="inline-block rounded-sm border border-transparent px-5 py-1.5 text-sm leading-normal text-[#1b1b18] hover:border-[#19140035] dark:text-[#EDEDEC] dark:hover:border-[#3E3E3A]"
                                 >
-                                    Log in
+                                    Logar
                                 </Link>
                                 <Link
                                     href={route('register')}
@@ -45,7 +45,7 @@ export default function Welcome() {
                             <p className="mb-2 text-[#706f6c] dark:text-[#A1A09A]">
                                 Laravel has an incredibly rich ecosystem.
                                 <br />
-                                We suggest starting with the following.
+                                sugerimos
                             </p>
                             <ul className="mb-4 flex flex-col lg:mb-6">
                                 <li className="relative flex items-center gap-4 py-2 before:absolute before:top-1/2 before:bottom-0 before:left-[0.4rem] before:border-l before:border-[#e3e3e0] dark:before:border-[#3E3E3A]">
