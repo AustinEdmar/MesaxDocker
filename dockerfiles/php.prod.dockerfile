@@ -37,12 +37,10 @@ RUN pecl install redis \
 
 # Ajuste de permissões para produção
 RUN chown -R laravel:laravel /var/www/html
-
-RUN chown -R laravel:laravel storage bootstrap/cache
+RUN chown -R laravel:laravel /var/www/html/storage /var/www/html/bootstrap/cache
+RUN chmod -R ug+rwx /var/www/html/storage /var/www/html/bootstrap/cache
 
 RUN chmod 666 ./src/composer.json
-
-RUN chmod -R 777 ./src/storage
 
 RUN chmod -R 777 ./src/routes
 

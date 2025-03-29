@@ -36,3 +36,4 @@ RUN pecl install redis \
 USER laravel
 
 CMD ["php-fpm", "-y", "/usr/local/etc/php-fpm.conf", "-R"]
+

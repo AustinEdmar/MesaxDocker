@@ -126,7 +126,8 @@ args:
 
 Solução 2: Corrigir permissões da pasta src
 Execute o seguinte comando no seu host para garantir que as permissões estejam corretas:
-bashCopiarsudo chown -R 1001:1001 ./src
+
+sudo chown -R 1001:1001 ./src
 sudo chmod -R 775 ./src
 
 3 - 

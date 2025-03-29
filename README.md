@@ -1,93 +1,129 @@
-# docker-compose-laravel
-A pretty simplified Docker Compose workflow that sets up a LEMP network of containers for local Laravel development.
-## Usage
+ip addr
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host noprefixroute 
+       valid_lft forever preferred_lft forever
+2: enp0s3: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000
+    link/ether 08:00:27:79:e5:e9 brd ff:ff:ff:ff:ff:ff
+    inet 192.168.0.118/24 metric 100 brd 192.168.0.255 scope global dynamic enp0s3
+       valid_lft 36631sec preferred_lft 36631sec
+    inet6 2c0f:f888:a980:18f6:a00:27ff:fe79:e5e9/64 scope global deprecated dynamic mngtmpaddr noprefixroute 
+       valid_lft 36631sec preferred_lft 0sec
+    inet6 fe80::a00:27ff:fe79:e5e9/64 scope link 
+       valid_lft forever preferred_lft forever
+3: docker0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc noqueue state DOWN group default 
+    link/ether de:1f:57:6b:fb:db brd ff:ff:ff:ff:ff:ff
+    inet 172.17.0.1/16 brd 172.17.255.255 scope global docker0
+       valid_lft forever preferred_lft forever
+    inet6 fe80::dc1f:57ff:fe6b:fbdb/64 scope link 
+       valid_lft forever preferred_lft forever
+1116: br-45dc310f0f93: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default 
+    link/ether 96:d4:12:fd:3d:c8 brd ff:ff:ff:ff:ff:ff
+    inet 172.18.0.1/16 brd 172.18.255.255 scope global br-45dc310f0f93
+       valid_lft forever preferred_lft forever
+    inet6 fe80::94d4:12ff:fefd:3dc8/64 scope link 
+       valid_lft forever preferred_lft forever
+1117: vethe732952@if2: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue master br-45dc310f0f93 state UP group default
 
-To get started, make sure you have [Docker installed](https://docs.docker.com/docker-for-mac/install/) on your system, and then clone this repository.
+    link/ether f2:d7:e7:88:4f:5f brd ff:ff:ff:ff:ff:ff link-netnsid 0
+    inet6 fe80::f0d7:e7ff:fe88:4f5f/64 scope link
+       valid_lft forever preferred_lft forever
+1118: vethb083154@if2: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue master br-45dc310f0f93 state UP group default
 
-Next, navigate in your terminal to the directory you cloned this, and spin up the containers for the web server by running `docker-compose up -d --build app`.
+    link/ether 2a:d3:31:a0:c3:79 brd ff:ff:ff:ff:ff:ff link-netnsid 1
+    inet6 fe80::28d3:31ff:fea0:c379/64 scope link
+       valid_lft forever preferred_lft forever
+1119: veth5c87cb2@if2: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue master br-45dc310f0f93 state UP group default
 
-After that completes, follow the steps from the [src/README.md](src/README.md) file to get your Laravel project added in (or create a new blank one).
+    link/ether 7e:56:8b:b2:18:44 brd ff:ff:ff:ff:ff:ff link-netnsid 2
+    inet6 fe80::7c56:8bff:feb2:1844/64 scope link
+       valid_lft forever preferred_lft forever
+1120: vethf9a3f5a@if2: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue master br-45dc310f0f93 state UP group default
 
-**Note**: Your MySQL database host name should be `mysql`, **not** `localhost`. The username and database should both be `homestead` with a password of `secret`. 
+    link/ether 1e:57:7c:61:6b:f4 brd ff:ff:ff:ff:ff:ff link-netnsid 3
+    inet6 fe80::1c57:7cff:fe61:6bf4/64 scope link
+       valid_lft forever preferred_lft forever
+1121: veth9756f8f@if2: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue master br-45dc310f0f93 state UP group default
 
-Bringing up the Docker Compose network with `app` instead of just using `up`, ensures that only our site's containers are brought up at the start, instead of all of the command containers as well. The following are built for our web server, with their exposed ports detailed:
+    link/ether ee:16:e5:eb:11:30 brd ff:ff:ff:ff:ff:ff link-netnsid 4
+    inet6 fe80::ec16:e5ff:feeb:1130/64 scope link
+       valid_lft forever preferred_lft forever
 
-- **nginx** - `:80`
-- **mysql** - `:3306`
-- **php** - `:9000`
-- **redis** - `:6379`
-- **mailhog** - `:8025` 
 
-Three additional containers are included that handle Composer, NPM, and Artisan commands *without* having to have these platforms installed on your local computer. Use the following command examples from your project root, modifying them to fit your particular use case.
 
-- `docker-compose run --rm composer update`
-- `docker-compose run --rm npm run dev`
-- `docker-compose run --rm artisan migrate`
 
-## Permissions Issues
 
-If you encounter any issues with filesystem permissions while visiting your application or running a container command, try completing one of the sets of steps below.
 
-**If you are using your server or local environment as the root user:**
 
-- Bring any container(s) down with `docker-compose down`
-- Replace any instance of `php.dockerfile` in the docker-compose.yml file with `php.root.dockerfile`
-- Re-build the containers by running `docker-compose build --no-cache`
 
-**If you are using your server or local environment as a user that is not root:**
 
-- Bring any container(s) down with `docker-compose down`
-- In your terminal, run `export UID=$(id -u)` and then `export GID=$(id -g)`
-- If you see any errors about readonly variables from the above step, you can ignore them and continue
-- Re-build the containers by running `docker-compose build --no-cache`
 
-Then, either bring back up your container network or re-run the command you were trying before, and see if that fixes it.
 
-## Persistent MySQL Storage
 
-By default, whenever you bring down the Docker network, your MySQL data will be removed after the containers are destroyed. If you would like to have persistent data that remains after bringing containers down and back up, do the following:
 
-1. Create a `mysql` folder in the project root, alongside the `nginx` and `src` folders.
-2. Under the mysql service in your `docker-compose.yml` file, add the following lines:
 
-```
-volumes:
-  - ./mysql:/var/lib/mysql
-```
 
-## Usage in Production
 
-While I originally created this template for local development, it's robust enough to be used in basic Laravel application deployments. The biggest recommendation would be to ensure that HTTPS is enabled by making additions to the `nginx/default.conf` file and utilizing something like [Let's Encrypt](https://hub.docker.com/r/linuxserver/letsencrypt) to produce an SSL certificate.
 
-## Compiling Assets
 
-This configuration should be able to compile assets with both [laravel mix](https://laravel-mix.com/) and [vite](https://vitejs.dev/). In order to get started, you first need to add ` --host 0.0.0.0` after the end of your relevant dev command in `package.json`. So for example, with a Laravel project using Vite, you should see:
 
-```json
-"scripts": {
-  "dev": "vite --host 0.0.0.0",
-  "build": "vite build"
-},
-```
 
-Then, run the following commands to install your dependencies and start the dev server:
 
-- `docker-compose run --rm npm install`
-- `docker-compose run --rm --service-ports npm run dev`
 
-After that, you should be able to use `@vite` directives to enable hot-module reloading on your local Laravel application.
 
-Want to build for production? Simply run `docker-compose run --rm npm run build`.
 
-## MailHog
+       ip a
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host noprefixroute 
+       valid_lft forever preferred_lft forever
+2: enp0s3: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000
+    link/ether 08:00:27:79:e5:e9 brd ff:ff:ff:ff:ff:ff
+    inet 192.168.0.118/24 metric 100 brd 192.168.0.255 scope global dynamic enp0s3
+       valid_lft 36548sec preferred_lft 36548sec
+    inet6 2c0f:f888:a980:18f6:a00:27ff:fe79:e5e9/64 scope global deprecated dynamic mngtmpaddr noprefixroute 
+       valid_lft 36547sec preferred_lft 0sec
+    inet6 fe80::a00:27ff:fe79:e5e9/64 scope link 
+       valid_lft forever preferred_lft forever
+3: docker0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc noqueue state DOWN group default 
+    link/ether de:1f:57:6b:fb:db brd ff:ff:ff:ff:ff:ff
+    inet 172.17.0.1/16 brd 172.17.255.255 scope global docker0
+       valid_lft forever preferred_lft forever
+    inet6 fe80::dc1f:57ff:fe6b:fbdb/64 scope link
+       valid_lft forever preferred_lft forever
+1116: br-45dc310f0f93: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default
+    link/ether 96:d4:12:fd:3d:c8 brd ff:ff:ff:ff:ff:ff
+    inet 172.18.0.1/16 brd 172.18.255.255 scope global br-45dc310f0f93
+       valid_lft forever preferred_lft forever
+    inet6 fe80::94d4:12ff:fefd:3dc8/64 scope link
+       valid_lft forever preferred_lft forever
+1117: vethe732952@if2: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue master br-45dc310f0f93 state UP group default
 
-The current version of Laravel (9 as of today) uses MailHog as the default application for testing email sending and general SMTP work during local development. Using the provided Docker Hub image, getting an instance set up and ready is simple and straight-forward. The service is included in the `docker-compose.yml` file, and spins up alongside the webserver and database services.
+    link/ether f2:d7:e7:88:4f:5f brd ff:ff:ff:ff:ff:ff link-netnsid 0
+    inet6 fe80::f0d7:e7ff:fe88:4f5f/64 scope link
+       valid_lft forever preferred_lft forever
+1118: vethb083154@if2: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue master br-45dc310f0f93 state UP group default
 
-To see the dashboard and view any emails coming through the system, visit [localhost:8025](http://localhost:8025) after running `docker-compose up -d site`.
+    link/ether 2a:d3:31:a0:c3:79 brd ff:ff:ff:ff:ff:ff link-netnsid 1
+    inet6 fe80::28d3:31ff:fea0:c379/64 scope link
+       valid_lft forever preferred_lft forever
+1119: veth5c87cb2@if2: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue master br-45dc310f0f93 state UP group default
 
-callcenter 
-C4llc3nt3r#sm3
+    link/ether 7e:56:8b:b2:18:44 brd ff:ff:ff:ff:ff:ff link-netnsid 2
+    inet6 fe80::7c56:8bff:feb2:1844/64 scope link
+       valid_lft forever preferred_lft forever
+1120: vethf9a3f5a@if2: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue master br-45dc310f0f93 state UP group default
 
-916 545 256
+    link/ether 1e:57:7c:61:6b:f4 brd ff:ff:ff:ff:ff:ff link-netnsid 3
+    inet6 fe80::1c57:7cff:fe61:6bf4/64 scope link
+       valid_lft forever preferred_lft forever
+1121: veth9756f8f@if2: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue master br-45dc310f0f93 state UP group default
 
-936 965 541
+    link/ether ee:16:e5:eb:11:30 brd ff:ff:ff:ff:ff:ff link-netnsid 4
+    inet6 fe80::ec16:e5ff:feeb:1130/64 scope link
+       valid_lft forever preferred_lft forever
+austin@Ubuntu-Server0:/etc/netplan$ 
