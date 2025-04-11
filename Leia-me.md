@@ -12,6 +12,7 @@ Depois, navegue até o diretório clonado no seu terminal e inicie os containers
 ```sh
 docker-compose up -d --build app
 ```
+docker-compose run --rm  artisan config:publish cors 
 docker-compose run --rm composer create-project laravel/laravel .
 docker-compose run --rm npm run dev
 

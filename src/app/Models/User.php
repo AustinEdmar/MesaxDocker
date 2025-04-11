@@ -3,6 +3,8 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+
+use App\Notifications\ResetPasswordNotification;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -16,13 +18,14 @@ class User extends Authenticatable
      *
      * @var array<int, string>
      */
-    protected $fillable = [
+    protected $guarded = [];
+   /*  protected $fillable = [
         'name',
         'email',
         'password',
         'profile_photo',
         'access_level',
-    ];
+    ]; */
 
     /**
      * The attributes that should be hidden for serialization.
@@ -52,4 +55,12 @@ class User extends Authenticatable
     {
         return $this->access_level === 1;
     }
+
+    public function sendPasswordResetNotification($token)
+{
+    $this->notify(new ResetPasswordNotification($token));
+
+}
+
+
 }

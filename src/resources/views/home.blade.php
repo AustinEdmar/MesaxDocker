@@ -4,6 +4,14 @@
 <div class="container">
     <header class="d-flex justify-content-between align-items-center mb-4">
         <h1>{{ __('Dashboard') }}</h1>
+
+        <a href="{{ route('logout') }}" 
+           onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+            {{ __('Log Out') }}
+        </a>
+        <form id="logout-form" method="POST" action="{{ route('logout') }}" class="d-none">
+            @csrf
+        </form>
     </header>
 
     @if (session('status'))

@@ -10,6 +10,12 @@ Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
+Route::get('/hoje', function () {
+    return 'hoje';
+});
+
+
+
 //Route::get('/', [App\Http\Controllers\Api\AuthController::class, 'index']);
 
 //Route::get('/', [AuthController::class, 'index']);
@@ -18,10 +24,16 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 Route::apiResource('tables', TableController::class);
+
 Route::middleware('auth:sanctum')->group(function () {
+    Route::apiResource('users', AuthController::class);
+    
     Route::get('/user', [AuthController::class, 'user']);
     Route::post('/logout', [AuthController::class, 'logout']);
-    Route::post('/update-profile-photo', [AuthController::class, 'updateProfilePhoto']);
+
+    Route::patch('/users/{user}', [AuthController::class, 'updateUser']);
+    
+   // Route::post('/update-user', [AuthController::class, 'updateUser']);
 
     // Admin routes
     Route::middleware('access.level:1')->group(function () {
