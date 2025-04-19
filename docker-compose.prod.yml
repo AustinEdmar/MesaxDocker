@@ -7,7 +7,7 @@ services:
   app:
     build:
       context: .
-      dockerfile: ./dockerfiles/nginx.prod.dockerfile
+      dockerfile: ./dockerfiles/nginx.dockerfile
       args:
         - UID=${UID:-1000}
         - GID=${GID:-1000}
