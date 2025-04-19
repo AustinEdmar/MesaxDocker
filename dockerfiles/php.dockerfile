@@ -32,7 +32,7 @@ RUN docker-php-ext-install pdo pdo_mysql
 RUN pecl install redis \
     && docker-php-ext-enable redis
 
-    
+
 USER laravel
 
 CMD ["php-fpm", "-y", "/usr/local/etc/php-fpm.conf", "-R"]

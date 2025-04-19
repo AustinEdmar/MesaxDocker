@@ -45,14 +45,15 @@ docker-compose -v
 
 15 - vamos a directory do user docker
 
-cd ~ 
+cd ~  //em 5min
 
 16- criar uma pasta site mkdir site e repo/site.git, depois de criar o repo,  cd repo mkdir site.git
 
 17 - cd site.git execute git init --bare // para criar um repositório bare 
 :/repo/site.git$ sudo git init --bare
 
-cd hooks
+17.1 cd hooks
+
 18 - criar nano post-receive
 criar um script que roda mudança no repositório
 
@@ -64,7 +65,9 @@ git --work-tree=/home/docker/site --git-dir=/home/docker/repo/site.git checkout 
 
 salva e sai rodo para tornar o script executavel
 
-19 - docker@Ubuntu-Server0:/repo/site.git/hooks$ sudo chmod +x post-receive
+19 - docker@Ubuntu-Server0:/repo/site.git/hooks$ 
+
+sudo chmod +x post-receive
 
 20 - exit 2x para ir ao ambiente local ja do projecto fora do server
 
@@ -72,7 +75,7 @@ salva e sai rodo para tornar o script executavel
 git init
 
 22 - 
-git remote add origin ssh://docker@192.168.0.118/home/docker/repo/site.git
+git remote add origin ssh://docker@192.168.0.121/home/docker/repo/site.git
 
 git add .
 
@@ -101,7 +104,7 @@ austin
 
 29 agora ro de novo git push origin main
 
-entro em docker@Ubuntu-Server0:~/site$ docker-compose up -d --build app
+30 -entro em docker@Ubuntu-Server0:~/site$ docker-compose up -d --build app
 
 
 

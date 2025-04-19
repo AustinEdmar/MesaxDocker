@@ -15,6 +15,7 @@ RUN sed -i "s/user  nginx/user laravel/g" /etc/nginx/nginx.conf
 
 ADD ./nginx/default.conf /etc/nginx/conf.d/
 
+
 RUN mkdir -p /var/www/html
 
 # Para produção: copiar o código-fonte durante o build
