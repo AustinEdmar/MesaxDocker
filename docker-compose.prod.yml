@@ -7,17 +7,29 @@ services:
   app:
     build:
       context: .
-      dockerfile: ./dockerfiles/nginx.dockerfile
+      dockerfile: ./dockerfiles/nginx.prod.dockerfile
       args:
         - UID=${UID:-1000}
         - GID=${GID:-1000}
     ports:
       - "80:80"
+      - "8080:8080"
     depends_on:
+      - nextjs
       - php
       - redis
       - mysql
       - mailhog
+    networks:
+      - laravel
+  
+  nextjs:
+    build:
+      context: .
+      dockerfile: ./dockerfiles/nextjs.dockerfile
+    
+    ports:
+      - "3000:3000"
     networks:
       - laravel
 
@@ -42,7 +54,7 @@ services:
   php:
     build:
       context: .
-      dockerfile: ./dockerfiles/php.dockerfile
+      dockerfile: ./dockerfiles/php.prod.dockerfile
       args:
         - UID=${UID:-1000}
         - GID=${GID:-1000}
@@ -62,7 +74,7 @@ services:
   composer:
     build:
       context: .
-      dockerfile: ./dockerfiles/php.dockerfile
+      dockerfile: ./dockerfiles/php.prod.dockerfile
       args:
         - UID=${UID:-1001}
         - GID=${GID:-1001}
@@ -75,6 +87,8 @@ services:
   npm:
     image: node:current-alpine
     working_dir: /var/www/html
+    volumes:
+      - ./src:/var/www/html
     entrypoint: [ 'npm' ]
     ports:
       - "3000:3000"
@@ -86,7 +100,7 @@ services:
   artisan:
     build:
       context: .
-      dockerfile: ./dockerfiles/php.dockerfile
+      dockerfile: ./dockerfiles/php.prod.dockerfile
       args:
         - UID=${UID:-1000}
         - GID=${GID:-1000}
@@ -99,7 +113,7 @@ services:
   pest:
     build:
       context: .
-      dockerfile: ./dockerfiles/php.dockerfile
+      dockerfile: ./dockerfiles/php.prod.dockerfile
       args:
         - UID=${UID:-1000}
         - GID=${GID:-1000}

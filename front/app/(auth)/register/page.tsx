@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from 'react'
+import React, {  useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -18,8 +18,7 @@ import {
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
+
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 
 import Autoplay from "embla-carousel-autoplay"
@@ -43,7 +42,7 @@ export default function Register() {
   const router = useRouter()
   const [showPassword, setShowPassword] = useState(false)
  
-  const { register, isLoading, error, clearError } = useAuthStore()
+  const { register, isLoading, clearError } = useAuthStore()
 
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
@@ -79,6 +78,7 @@ export default function Register() {
       }
     } catch (error) {
       // Os erros já são tratados na store e pelos interceptores
+      console.log(error)
     }
   }
 
@@ -86,19 +86,11 @@ export default function Register() {
     Autoplay({ delay: 8000, stopOnInteraction: true })
   )
   
-  // Define carousel images - use actual images from your project
-  const carouselImages = [
-    '/images/carousel-1.jpg',
-    '/images/carousel-2.jpg',
-    '/images/carousel-3.jpg',
-    '/images/carousel-4.jpg',
-    '/images/carousel-5.jpg',
-  ]
+
   
-  // Fallback to use if images aren't available
-  const fallbackImage = '/auth.svg'
 
   return (
+  
     <div className="flex flex-col lg:flex-row bg-white h-screen w-full overflow-hidden">
       {/* Formulário */}
       <div className="w-full lg:w-1/2 p-4 md:p-6 lg:p-10 mb-10 overflow-y-auto">
@@ -299,5 +291,6 @@ export default function Register() {
         </Carousel>
       </div>
     </div>
+  
   )
 }

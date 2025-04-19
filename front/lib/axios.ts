@@ -3,6 +3,15 @@ import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import Cookies from 'js-cookie'; // Você precisa instalar: npm install js-cookie
 
+// Define a proper user data type to replace 'any'
+interface UserData {
+  id?: string | number;
+  name?: string;
+  email?: string;
+  // Add other user fields as needed
+  key: string; // Fallback for other properties if needed
+}
+
 // Cria uma instância Axios configurada
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
@@ -200,8 +209,8 @@ export const setupAxiosInterceptors = (router?: ReturnType<typeof useRouter>) =>
   return api;
 };
 
-// Função atualizada para configurar o token de autenticação
-export const setAuthToken = (token: string, tokenType: string, userData: any) => {
+// Função para configurar o token de autenticação
+export const setAuthToken = (token: string, tokenType: string, userData: UserData) => {
   if (typeof window !== 'undefined') {
     // Armazena no localStorage
     localStorage.setItem('token', token);

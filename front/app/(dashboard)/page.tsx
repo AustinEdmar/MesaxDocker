@@ -16,6 +16,7 @@ export default function Dashboard() {
             <p className="mt-2 text-gray-600">Gerencie suas tarefas pendentes</p>
           </div>
         </div>
+      
       </div>
     )
   }

@@ -38,18 +38,6 @@ class ResetPasswordNotification extends Notification
         return ['mail'];
     }
 
-    /**
-     * Get the mail representation of the notification.
-     */
-    /* public function toMail(object $notifiable): MailMessage
-    {
-        return (new MailMessage)
-            ->subject('Redefinição de senha')
-            ->line('Clique no botão abaixo para redefinir sua senha.')
-            ->action('Redefinir Senha', $this->resetUrl($notifiable))
-            ->line('Se você não solicitou um reset de senha, nenhuma ação adicional será necessária.');
-    } */
-
     public function toMail(object $notifiable): MailMessage
 {
     return (new MailMessage)

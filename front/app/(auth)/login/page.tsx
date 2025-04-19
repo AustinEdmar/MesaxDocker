@@ -4,7 +4,7 @@ import React, { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff } from 'lucide-react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import * as z from 'zod'
@@ -22,12 +22,9 @@ import {
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -50,7 +47,7 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false)
   
   // Usando a store de autenticação
-  const { login, isLoading, error, clearError } = useAuthStore()
+  const { login, isLoading, clearError } = useAuthStore()
 
   // Initialize form with React Hook Form and Zod resolver
   const form = useForm<LoginFormValues>({
@@ -85,6 +82,7 @@ export default function Login() {
     } catch (error) {
       // Os erros já são tratados na store e pelos interceptores
       // Não é necessário tratamento adicional aqui
+      console.log(error)
     }
   }
 
@@ -93,6 +91,7 @@ export default function Login() {
   )
 
   return (
+
     <div className="flex flex-col lg:flex-row min-h-screen bg-white">
       {/* Formulário */}
       <div className="w-full lg:w-1/2 flex flex-col p-4 md:p-6 lg:p-10 min-h-screen">
@@ -228,5 +227,6 @@ export default function Login() {
         </Carousel>
       </div>
     </div>
+  
   )
 }

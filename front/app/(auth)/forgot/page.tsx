@@ -4,7 +4,7 @@ import React, { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Eye, EyeOff } from 'lucide-react'
+import { ArrowLeft  } from 'lucide-react'
 import {
   Carousel,
   CarouselContent,
@@ -15,7 +15,7 @@ import {
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
+
 import { useAuthStore } from '@/stores/auth'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
@@ -37,7 +37,7 @@ export default function Forgot() {
   const [sent, setSent] = useState(false)
   const router = useRouter()
 
-  const { forgotPassword, isLoading, error, clearError } = useAuthStore()
+  const { forgotPassword, isLoading, clearError } = useAuthStore()
 
   // Initialize form with React Hook Form and Zod resolver
   const form = useForm<ForgotFormValues>({
@@ -65,18 +65,20 @@ export default function Forgot() {
         
         // Redireciona para o login
        // router.push('/login')
-      }
-    } catch (error) {
-      // Os erros já são tratados na store e pelos interceptores
-      // Não é necessário tratamento adicional aqui
     }
+  } catch (error) {
+    // Os erros já são tratados na store e pelos interceptores
+    // Não é necessário tratamento adicional aqui
+    console.log(error)
   }
+}
 
   const plugin = React.useRef(
     Autoplay({ delay: 8000, stopOnInteraction: true })
   )
 
   return (
+    
     <div className="flex flex-col lg:flex-row min-h-screen bg-white">
   {/* Formulário */}
   <div className="w-full lg:w-1/2 flex flex-col p-4 md:p-6 lg:p-10 min-h-screen">
@@ -191,5 +193,6 @@ export default function Forgot() {
     </Carousel>
   </div>
 </div>
+
   )
 }

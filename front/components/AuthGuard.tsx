@@ -13,7 +13,7 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  const { isAuthenticated, checkAuth } = useAuthStore()
+  const { checkAuth } = useAuthStore()
 
   const [isChecking, setIsChecking] = useState(true)
 

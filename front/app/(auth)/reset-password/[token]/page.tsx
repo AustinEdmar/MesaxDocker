@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter, useSearchParams, useParams } from 'next/navigation'
@@ -22,12 +22,9 @@ import {
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -106,7 +103,7 @@ export default function ResetPassword() {
         // Redireciona para o login
         setTimeout(() => {
           router.push('/login')
-        }, 2000)
+        }, 2000) 
       }
     } catch (error) {
       // Os erros já são tratados na store e pelos interceptores
@@ -119,6 +116,7 @@ export default function ResetPassword() {
   )
 
   return (
+    <Suspense fallback={<div>Carregando...</div>}>
     <div className="flex flex-col lg:flex-row min-h-screen bg-white">
       {/* Formulário */}
       <div className="w-full lg:w-1/2 flex flex-col p-4 md:p-6 lg:p-10 min-h-screen">
@@ -173,13 +171,6 @@ export default function ResetPassword() {
                 />
 
                 {/* Exibir informações de diagnóstico (remover em produção) */}
-                {/* {process.env.NODE_ENV === 'development' && (
-                  <div className="p-2 mb-4 bg-gray-100 text-xs rounded">
-                    <div><strong>Email:</strong> {form.getValues('email')}</div>
-                    <div><strong>Token:</strong> {form.getValues('token')?.substring(0, 16)}...</div>
-                  </div>
-                )} */}
-
                 {/* Campo de senha */}
                 <FormField
                   control={form.control}
@@ -282,7 +273,7 @@ export default function ResetPassword() {
               <CarouselItem key={index} className="h-full">
                 <div className="relative w-full h-screen">
                   <Image
-                    src={`../auth.svg`}
+                    src={`/auth.svg`}
                     alt={`Imagem do carrossel ${index + 1}`}
                     fill
                     className="object-cover"
@@ -303,5 +294,6 @@ export default function ResetPassword() {
         </Carousel>
       </div>
     </div>
+    </Suspense>
   )
 }

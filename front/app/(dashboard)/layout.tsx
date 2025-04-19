@@ -7,6 +7,8 @@ import { useState } from "react"
 import { StoreProvider } from "@/stores/provider"
 import { AuthGuard } from "@/components/AuthGuard"
 import { useAuthStore } from '@/stores/auth';
+import PrefetchTables from "@/app/(dashboard)/tables/prefetch-tables";
+            
 export default function DashboardLayout({
   children,
 }: {
@@ -37,11 +39,15 @@ export default function DashboardLayout({
       <div className="w-64 bg-white shadow-md">
         <div className="p-4">
           <h2 className="text-xl font-bold">Dashboard</h2>
+          
         </div>
         <nav className="mt-6">
           <ul>
             <li className="px-4 py-2 hover:bg-gray-50">
               <Link href="/">Início</Link>
+            </li>
+            <li className="px-4 py-2 hover:bg-gray-50">
+              <Link href="/tables">Mesas</Link>
             </li>
             <li className="px-4 py-2 hover:bg-gray-50">
               <Link href="/profile">Perfil</Link>
@@ -67,6 +73,7 @@ export default function DashboardLayout({
         <StoreProvider>
           <AuthGuard>
             {children}
+            <PrefetchTables />
           </AuthGuard>
         </StoreProvider>
       </div>

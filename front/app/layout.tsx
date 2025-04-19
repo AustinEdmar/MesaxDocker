@@ -1,19 +1,24 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+//import { Geist, Geist_Mono } from "next/font/google";
+
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner"
 import AxiosProvider from '@/providers/AxiosProvider';
 import { StoreProvider } from "@/stores/provider"
 import { AuthGuard } from "@/components/AuthGuard"
-const geistSans = Geist({
+import { Suspense } from "react"
+import { Providers } from "../lib/QueryProvider";
+
+
+/* const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
-});
+}); */
 
-const geistMono = Geist_Mono({
+/* const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
-});
+}); */
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -28,8 +33,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        
       >
+        <Suspense fallback={<div>Carregando...</div>}>
+        <Providers>
          <AxiosProvider> 
          <StoreProvider>
          <AuthGuard>
@@ -38,6 +45,9 @@ export default function RootLayout({
         </AuthGuard>
         </StoreProvider>
         </AxiosProvider>
+        
+        </Providers>
+        </Suspense>
       </body>
     </html>
   );

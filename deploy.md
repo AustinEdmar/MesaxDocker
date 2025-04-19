@@ -17,17 +17,26 @@ curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
 
 10 - sudo apt install docker-ce
 
-11 - permitiremos que o user nao root use o container sem sudo 
+### 11 - permitiremos que o user nao root use o container sem sudo 
 
 12 - sudo usermod -aG docker ${USER} e sudo usermod -aG docker docker
 12 - su docker, depois de entrar pra ver o estado
 sudo systemctl status docker
+
+12.1 -
+Esse comando está dizendo que o usuário atual (edmar, no exemplo) pertence aos grupos:
+docker → ✅ pode usar Docker sem sudo
+
+sudo → ✅ pode executar comandos com privilégios elevados
+
+users → grupo padrão de usuários comuns
 
 id -nG
 
 13 - sudo apt install docker-compose
 sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
 
+13.1 - 
 sudo chmod +x /usr/local/bin/docker-compose
 
 docker-compose -v
@@ -36,7 +45,7 @@ docker-compose -v
 
 15 - vamos a directory do user docker
 
-cd ~
+cd ~ 
 
 16- criar uma pasta site mkdir site e repo/site.git, depois de criar o repo,  cd repo mkdir site.git
 

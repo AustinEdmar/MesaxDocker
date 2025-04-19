@@ -6,12 +6,7 @@ ARG GID
 ENV UID=${UID}
 ENV GID=${GID}
 
-RUN mkdir -p /var/www/html
-
 WORKDIR /var/www/html
-
-# Para produção: copiar o código-fonte durante o build
-COPY ./src/ /var/www/html/
 
 # Install system dependencies
 RUN apk add --no-cache \
@@ -35,14 +30,12 @@ RUN docker-php-ext-install pdo pdo_mysql
 RUN pecl install redis \
     && docker-php-ext-enable redis
 
+# Para produção: copiar o código-fonte durante o build
+COPY ./src/ /var/www/html/
+
 # Ajuste de permissões para produção
 RUN chown -R laravel:laravel /var/www/html
-RUN chown -R laravel:laravel /var/www/html/storage /var/www/html/bootstrap/cache
 RUN chmod -R ug+rwx /var/www/html/storage /var/www/html/bootstrap/cache
-
-RUN chmod 666 ./src/composer.json
-
-RUN chmod -R 777 ./src/routes
 
 USER laravel
 
