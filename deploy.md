@@ -222,4 +222,8 @@ reverb:
       - ./src:/var/www/html:delegated
     working_dir: /var/www/html
     networks:
-      - laravel
+      - 
+      
+
+      origin  ssh://docker@192.168.0.121/home/docker/repo/site.git (fetch)
+origin  ssh://docker@192.168.0.121/home/docker/repo/site.git (push)
