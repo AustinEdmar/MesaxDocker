@@ -81,7 +81,14 @@ export default function UserProfile() {
   // Função para lidar com o upload de imagem
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    
+    const maxSize = 3 * 1024 * 1024; // 3MB em bytes
+    if (file && file.size > maxSize) {
+      toast.error('Arquivo muito grande. O limite é 2MB.', {
+        duration: 8000, // 8 segundos
+        description: 'O arquivo deve ter no máximo 2MB de tamanho.' ,
+      });
+      return
+    }
     if (file) {
       setPhotoFile(file)
       

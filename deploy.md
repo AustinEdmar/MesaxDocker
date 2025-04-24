@@ -178,7 +178,13 @@ sudo chmod -R 777 ./src/routes
 sudo chmod -R 777 ./src/storage
 
 
+### 2. Dê permissão de execução no host
+No terminal, rode:
 
+bash
+Copiar
+Editar
+chmod +x dockerfiles/entrypoint.sh
 #### deploy em production  trocar yml prod
 
 nginx.prod.dockerfile

@@ -14,6 +14,8 @@ use Illuminate\Support\Str;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
+
 
 class AuthController extends Controller
 {
@@ -128,7 +130,7 @@ class AuthController extends Controller
         return UserResource::collection(User::all());
     }
 
-    public function update(Request $request, User $user)
+/*     public function update(Request $request, User $user)
 {
     // Validação dos campos
     $validated = $request->validate([
@@ -155,7 +157,50 @@ class AuthController extends Controller
     }
 
     return new UserResource($user);
+} */
+
+
+
+
+public function update(Request $request, User $user)
+{
+    try {
+        $validated = $request->validate([
+            'name' => 'sometimes|required|string|max:255',
+            'email' => 'sometimes|required|string|email|max:255|unique:users,email,' . $user->id,
+            'access_level' => 'sometimes|required|integer|in:0,1',
+            'profile_photo' => 'sometimes|file|image|mimes:jpeg,png,jpg,gif,webp|max:6048',
+        ]);
+    } catch (ValidationException $e) {
+        // Checa se o erro é de tamanho da imagem
+        $errors = $e->validator->errors();
+        if ($errors->has('profile_photo') && str_contains($errors->first('profile_photo'), 'may not be greater than')) {
+            return response()->json([
+                'message' => 'A imagem não pode ter mais que 2MB.',
+                'errors' => $errors,
+            ], 422);
+        }
+
+        // Retorna os outros erros normalmente
+        throw $e;
+    }
+
+    // Atualiza dados exceto a imagem
+    $user->update(Arr::except($validated, ['profile_photo']));
+
+    if ($request->hasFile('profile_photo')) {
+        if ($user->profile_photo) {
+            Storage::disk('public')->delete($user->profile_photo);
+        }
+
+        $photoPath = $request->file('profile_photo')->store('profile-photos', 'public');
+        $user->profile_photo = $photoPath;
+        $user->save();
+    }
+
+    return new UserResource($user);
 }
+
 
 
     // Em seu AuthController

@@ -1,3 +1,6 @@
+https://www.heondokim.com/articles/laravel-websockets-nginx-docker
+
+
 # docker-compose-laravel
 docker system prune -a --volumes apagar todos os containers e volumes
 

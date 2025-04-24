@@ -20,8 +20,7 @@ services:
       - ./src:/var/www/html:cached
     depends_on:
       - nextjs
-      - php
-      - redis
+      - php 
       - mysql
       - mailhog
     networks:
@@ -38,6 +37,56 @@ services:
     networks:
       - laravel
   
+  queue-worker:
+    build:
+      context: ./dockerfiles
+      dockerfile: php.dockerfile
+      args:
+        - UID=${UID:-1000}
+        - GID=${GID:-1000}
+    restart: always
+    volumes:
+      - ./src:/var/www/html
+    environment:
+      - DB_HOST=mysql
+      - DB_DATABASE=mesax
+      - DB_USERNAME=austin
+      - DB_PASSWORD=923.Eddy
+    depends_on:
+      - mysql
+    networks:
+      - laravel
+    command: "php artisan queue:work"
+
+  reverb:
+    build:
+        context: ./dockerfiles
+        dockerfile: php.dockerfile
+        args:
+          - UID=${UID:-1000}
+          - GID=${GID:-1000}
+    restart: always
+    user: root
+    volumes:
+        - ./src:/var/www/html
+        - ./dockerfiles/reverb-entrypoint.sh:/reverb-entrypoint.sh
+    environment:
+        - DB_HOST=mysql
+        - DB_DATABASE=mesax
+        - DB_USERNAME=austin
+        - DB_PASSWORD=923.Eddy
+        - REVERB_APP_ID=573699
+        - REVERB_APP_KEY=qqmsdqbnqvuhmij41258
+        - REVERB_APP_SECRET=fgvldq8bdjsbqqjssdf4564n6
+        - REVERB_SERVER_HOST=0.0.0.0
+        - REVERB_SERVER_PORT=8081
+    
+    ports:
+        - "8081:8081"
+    networks:
+        - laravel
+    entrypoint: ["/reverb-entrypoint.sh"]
+    command: "sh -c 'chmod +x /reverb-entrypoint.sh && /reverb-entrypoint.sh'"
   mysql:
     image: mysql:9.2.0
     
@@ -68,10 +117,15 @@ services:
       - "9000:9000"
     volumes:
       - ./src:/var/www/html:cached
+      - ./dockerfiles/entrypoint.sh:/usr/local/bin/docker-entrypoint.sh
+    entrypoint: ["/usr/local/bin/docker-entrypoint.sh"]
+    depends_on:
+      - mysql
+      - redis
+      - queue-worker
+      - reverb
     networks:
       - laravel
-  
-  
 
   redis:
     image: redis:alpine
@@ -147,3 +201,5 @@ services:
       - "8025:8025"
     networks:
       - laravel
+  
+  
