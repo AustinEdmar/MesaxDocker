@@ -125,7 +125,8 @@ services:
     volumes:
       - ./src:/var/www/html:cached
       - ./dockerfiles/entrypoint.sh:/usr/local/bin/docker-entrypoint.sh
-    entrypoint: ["/usr/local/bin/docker-entrypoint.sh"]
+    entrypoint: ["/bin/sh", "-c"]
+    command: "chmod +x /usr/local/bin/docker-entrypoint.sh && /usr/local/bin/docker-entrypoint.sh"
     depends_on:
       - mysql
       - redis

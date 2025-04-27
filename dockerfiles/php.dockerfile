@@ -40,9 +40,6 @@ RUN sed -i "s/user = www-data/user = laravel/g" /usr/local/etc/php-fpm.d/www.con
 RUN sed -i "s/group = www-data/group = laravel/g" /usr/local/etc/php-fpm.d/www.conf
 RUN echo "php_admin_flag[log_errors] = on" >> /usr/local/etc/php-fpm.d/www.conf
 
-#COPY reverb-entrypoint.sh /reverb-entrypoint.sh
-#RUN chmod +x /reverb-entrypoint.sh
-
 # Configurar limites de upload
 RUN echo "upload_max_filesize = 5M" > /usr/local/etc/php/conf.d/uploads.ini \
     && echo "post_max_size = 5M" >> /usr/local/etc/php/conf.d/uploads.ini \
