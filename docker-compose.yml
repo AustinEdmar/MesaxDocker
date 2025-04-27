@@ -72,6 +72,7 @@ services:
     volumes:
         - ./src:/var/www/html
         - ./dockerfiles/reverb-entrypoint.sh:/reverb-entrypoint.sh
+
     environment:
         - DB_HOST=mysql
         - DB_DATABASE=mesax
@@ -87,9 +88,11 @@ services:
         - "8081:8081"
     networks:
         - laravel
-    entrypoint: ["/reverb-entrypoint.sh"]
-    command: "sh -c 'chmod +x /reverb-entrypoint.sh && /reverb-entrypoint.sh'"
+    #entrypoint: ["/reverb-entrypoint.sh"]
+    #command: "sh -c 'chmod +x /reverb-entrypoint.sh && /reverb-entrypoint.sh'"
   
+    entrypoint: ["/bin/sh", "-c"]
+    command: "chmod +x /reverb-entrypoint.sh && /reverb-entrypoint.sh"
   
   mysql:
     image: mysql:9.2.0
