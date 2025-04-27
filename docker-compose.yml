@@ -91,8 +91,8 @@ services:
     #entrypoint: ["/reverb-entrypoint.sh"]
     #command: "sh -c 'chmod +x /reverb-entrypoint.sh && /reverb-entrypoint.sh'"
   
-   ## entrypoint: ["/bin/sh", "-c"]
-    #command: "chmod +x /reverb-entrypoint.sh && /reverb-entrypoint.sh"
+    entrypoint: ["/bin/sh", "-c"]
+    command: "chmod +x /usr/local/bin/docker-entrypoint.sh && /usr/local/bin/docker-entrypoint.sh"
   
   mysql:
     image: mysql:9.2.0
