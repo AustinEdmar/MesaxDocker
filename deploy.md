@@ -589,3 +589,17 @@ WantedBy=multi-user.target
 3 - sudo systemctl start docker-compose-app.service
 
 4 - sudo systemctl status docker-compose-app.service
+
+
+
+
+
+docker-compose run --rm certbot certonly -d ilinks.duckdns.org
+
+
+permissions
+austin@server:/home/docker/site$ sudo chmod +x ./dockerfiles/reverb-entrypoint.sh
+
+sudo chmod +x ./dockerfiles/entrypoint.sh
+
+sudo chmod +x /etc/systemd/system/docker-compose-app.service
