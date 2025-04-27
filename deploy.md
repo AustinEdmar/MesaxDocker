@@ -597,7 +597,7 @@ WantedBy=multi-user.target
 docker-compose run --rm certbot certonly -d ilinks.duckdns.org
 
 
-permissions
+### 1 - permissions
 austin@server:/home/docker/site$ sudo chmod +x ./dockerfiles/reverb-entrypoint.sh
 
 sudo chmod +x ./dockerfiles/entrypoint.sh
