@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat em Tempo Real</title>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/laravel-echo@1.15.0/dist/echo.iife.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/pusher-js@8.0.0/dist/web/pusher.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/laravel-echo/1.19.0/echo.iife.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pusher-js@8.4.0/dist/web/pusher.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -62,7 +62,41 @@
         button:hover {
             background-color: #45a049;
         }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .messages {
+            border: 1px solid #ddd;
+            padding: 15px;
+            height: 300px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+        .message {
+            margin-bottom: 10px;
+        }
+        .user {
+            font-weight: bold;
+            color: #3490dc;
+        }
+        .input-group {
+            margin-bottom: 10px;
+        }
+        input {
+            padding: 10px;
+            width: 100%;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #3490dc;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
     </style>
+    @vite(['resources/js/app.js'])
 </head>
 <body>
     <div class="container">
@@ -85,21 +119,28 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Configurar Laravel Echo
-            window.Echo = new Echo({
-                broadcaster: 'reverb',
-                key: '{{ env("REVERB_APP_KEY") }}',
-                wsHost: window.location.hostname,
-                wsPort: 8081,
-                forceTLS: false,
-                disableStats: true,
-                enabledTransports: ['ws', 'wss'],
-                cluster: 'mt1' // Adicione esta linha
-            });
 
+            console.log('DOM carregado');
+console.log('Echo está disponível?', typeof window.Echo !== 'undefined');
+if (typeof window.Echo !== 'undefined') {
+    console.log('Echo configurado com:', {
+        broadcaster: window.Echo.connector.options.broadcaster,
+        host: window.Echo.connector.options.host,
+        port: window.Echo.connector.options.port
+    });
+}
+            // Verifica se o Echo está disponível
+            if (typeof Echo === 'undefined') {
+                console.error('Echo não está definido. Verifique se o app.js está carregado corretamente.');
+                return;
+            }
+
+            console.log('Echo inicializado:', Echo);
+            
             // Escutar o canal público
-            window.Echo.channel('public-chat')
+            Echo.channel('public-chat')
                 .listen('.new-message', (data) => {
+                    console.log('Mensagem recebida:', data);
                     addMessage(data.user, data.message);
                 });
 
@@ -128,6 +169,7 @@
                     message: message
                 })
                 .then(response => {
+                    console.log('Mensagem enviada com sucesso:', response.data);
                     document.getElementById('message').value = '';
                 })
                 .catch(error => {
@@ -136,5 +178,7 @@
             });
         });
     </script>
+
+
 </body>
 </html>

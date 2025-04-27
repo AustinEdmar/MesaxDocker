@@ -227,3 +227,365 @@ reverb:
 
       origin  ssh://docker@192.168.0.121/home/docker/repo/site.git (fetch)
 origin  ssh://docker@192.168.0.121/home/docker/repo/site.git (push)
+
+
+
+
+
+
+
+add reverb
+
+Primeiro, verifique seu arquivo de entrada para o Reverb:
+
+#!/bin/sh
+set -e
+
+#!/bin/bash
+
+cd /var/www/html
+
+# Ajusta as permissões para o usuário laravel
+chown -R laravel:laravel /var/www/html/storage
+chmod -R 775 /var/www/html/storage
+
+# Executa o comando como usuário laravel
+su laravel -c "cd /var/www/html && php artisan reverb:start --port=8081 --host=0.0.0.0 --debug"
+
+exec "$@"
+
+
+2. Modifique seu arquivo resources/js/echo.js para configurar o Echo corretamente
+
+import Echo from 'laravel-echo';
+
+import Pusher from 'pusher-js';
+window.Pusher = Pusher;
+
+ window.Echo = new Echo({
+    broadcaster: 'reverb',
+    key: import.meta.env.VITE_REVERB_APP_KEY || 'qqmsdqbnqvuhmij41258',
+    wsHost: window.location.hostname || 'reverb',
+    wsPort: import.meta.env.VITE_REVERB_PORT ?? 8081,
+    wssPort: import.meta.env.VITE_REVERB_PORT ?? 8081,
+    forceTLS: false,
+   // forceTLS: (import.meta.env.VITE_REVERB_SCHEME ?? 'https') === 'https',
+    enabledTransports: ['ws', 'wss'],
+    cluster: 'mt1' // Adicione esta linha
+}); 
+
+3 . Corrija o arquivo .env no projeto Laravel:
+
+BROADCAST_CONNECTION=reverb
+FILESYSTEM_DISK=local
+QUEUE_CONNECTION=database
+
+CACHE_STORE=database
+CACHE_PREFIX=
+
+MEMCACHED_HOST=127.0.0.1
+
+REDIS_CLIENT=phpredis
+REDIS_HOST=127.0.0.1
+REDIS_PASSWORD=null
+REDIS_PORT=6379
+
+PUSHER_HOST=soketi
+PUSHER_APP_ID=app-id
+PUSHER_APP_KEY=app-key
+PUSHER_APP_SECRET=app-secret
+
+
+BROADCAST_DRIVER=pusher
+
+REVERB_APP_ID=573699
+REVERB_APP_KEY=qqmsdqbnqvuhmij41258
+REVERB_APP_SECRET=fgvldq8bdjsbqqjssdf4564n6
+REVERB_SERVER_HOST=reverb
+REVERB_SERVER_PORT=8081
+REVERB_SCHEME=http
+
+
+4 - Verifique se o arquivo de configuração de broadcasting está correto:
+
+config/broadcasting.php
+
+'reverb' => [
+            'driver' => 'reverb',
+            'key' => env('REVERB_APP_KEY'),
+            'secret' => env('REVERB_APP_SECRET'),
+            'app_id' => env('REVERB_APP_ID'),
+            'options' => [
+                'host' => env('REVERB_SERVER_HOST', 'reverb'),
+                'port' => env('REVERB_SERVER_PORT', 8081),
+                'scheme' => env('REVERB_SCHEME', 'http'),
+                'encrypted' => false,
+            'useTLS' => false,
+            ],
+],
+
+5 - Importante: Para permitir que seu contêiner Reverb seja acessado corretamente, modifique a configuração do Nginx:
+
+server {
+    listen 8081;
+    server_name _;
+
+    location / {
+        proxy_pass http://reverb:8081;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 86400;
+    }
+}
+
+6 - Certifique-se que seu arquivo vite.config.js está configurado para expor as variáveis de ambiente do Reverb:
+
+import { defineConfig } from 'vite';
+import laravel from 'laravel-vite-plugin';
+
+export default defineConfig({
+    plugins: [
+        laravel({
+            input: [
+                'resources/sass/app.scss',
+                'resources/js/app.js',
+            ],
+            refresh: [
+                'resources/routes/**',
+                'routes/**',
+                'resources/views/**',
+            ],
+        }),
+    ],
+    server: {
+        hmr: {
+            host: 'localhost',
+        },
+    },
+});
+
+
+7 - Adicione esses logs de depuração que podem ajudar a identificar a causa raiz do problema:
+Atualize o arquivo chat.blade.php para usar o Echo corretamente:
+
+
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat em Tempo Real</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/laravel-echo/1.19.0/echo.iife.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pusher-js@8.4.0/dist/web/pusher.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+        .messages {
+            height: 400px;
+            overflow-y: auto;
+            border: 1px solid #e1e1e1;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        .message {
+            margin-bottom: 10px;
+            padding: 8px 12px;
+            background-color: #f0f0f0;
+            border-radius: 4px;
+        }
+        .message .user {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+        }
+        .input-group {
+            margin-bottom: 10px;
+        }
+        input, button {
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .messages {
+            border: 1px solid #ddd;
+            padding: 15px;
+            height: 300px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+        .message {
+            margin-bottom: 10px;
+        }
+        .user {
+            font-weight: bold;
+            color: #3490dc;
+        }
+        .input-group {
+            margin-bottom: 10px;
+        }
+        input {
+            padding: 10px;
+            width: 100%;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #3490dc;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+    </style>
+    @vite(['resources/js/app.js'])
+</head>
+<body>
+    <div class="container">
+        <h1>Chat em Tempo Real</h1>
+        
+        <div class="messages" id="messages">
+            <!-- As mensagens aparecerão aqui -->
+        </div>
+        
+        <form id="message-form">
+            <div class="input-group">
+                <input type="text" id="username" placeholder="Seu nome" required>
+            </div>
+            <div class="input-group">
+                <input type="text" id="message" placeholder="Digite sua mensagem" required>
+            </div>
+            <button type="submit">Enviar</button>
+        </form>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+
+            console.log('DOM carregado');
+console.log('Echo está disponível?', typeof window.Echo !== 'undefined');
+if (typeof window.Echo !== 'undefined') {
+    console.log('Echo configurado com:', {
+        broadcaster: window.Echo.connector.options.broadcaster,
+        host: window.Echo.connector.options.host,
+        port: window.Echo.connector.options.port
+    });
+}
+            // Verifica se o Echo está disponível
+            if (typeof Echo === 'undefined') {
+                console.error('Echo não está definido. Verifique se o app.js está carregado corretamente.');
+                return;
+            }
+
+            console.log('Echo inicializado:', Echo);
+            
+            // Escutar o canal público
+            Echo.channel('public-chat')
+                .listen('.new-message', (data) => {
+                    console.log('Mensagem recebida:', data);
+                    addMessage(data.user, data.message);
+                });
+
+            // Função para adicionar mensagem à lista
+            function addMessage(user, message) {
+                const messagesDiv = document.getElementById('messages');
+                const messageElement = document.createElement('div');
+                messageElement.className = 'message';
+                messageElement.innerHTML = `<span class="user">${user}:</span> ${message}`;
+                messagesDiv.appendChild(messageElement);
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            }
+
+            // Manipular envio do formulário
+            document.getElementById('message-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const username = document.getElementById('username').value;
+                const message = document.getElementById('message').value;
+                
+                if (message.trim() === '') return;
+                
+                // Enviar mensagem para o servidor
+                axios.post('/send-message', {
+                    user: username,
+                    message: message
+                })
+                .then(response => {
+                    console.log('Mensagem enviada com sucesso:', response.data);
+                    document.getElementById('message').value = '';
+                })
+                .catch(error => {
+                    console.error('Erro ao enviar mensagem:', error);
+                });
+            });
+        });
+    </script>
+
+
+</body>
+</html>
+
+8 - docker-compose up -d --build app
+
+
+9 iniciar o docker compose com ubuntu server
+
+1
+sudo nano /etc/systemd/system/docker-compose-app.service
+
+
+[Unit]
+Description=Docker Compose Application Service
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/home/docker/site
+ExecStart=/usr/bin/docker-compose up -d app
+ExecStop=/usr/bin/docker-compose down
+
+[Install]
+WantedBy=multi-user.target
+
+2 - sudo systemctl enable docker-compose-app.service
+3 - sudo systemctl start docker-compose-app.service
+
+4 - sudo systemctl status docker-compose-app.service

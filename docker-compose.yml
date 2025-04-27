@@ -18,6 +18,8 @@ services:
       
     volumes:
       - ./src:/var/www/html:cached
+      - ./data/certbot/conf:/etc/letsencrypt
+      - ./data/certbot/www:/var/www/certbot
     depends_on:
       - nextjs
       - php 
@@ -87,6 +89,8 @@ services:
         - laravel
     entrypoint: ["/reverb-entrypoint.sh"]
     command: "sh -c 'chmod +x /reverb-entrypoint.sh && /reverb-entrypoint.sh'"
+  
+  
   mysql:
     image: mysql:9.2.0
     
@@ -199,6 +203,14 @@ services:
     ports:
       - "1025:1025"
       - "8025:8025"
+    networks:
+      - laravel
+
+  certbot:
+    image: certbot/certbot
+    volumes:
+      - ./data/certbot/conf:/etc/letsencrypt
+      - ./data/certbot/www:/var/www/certbot
     networks:
       - laravel
   

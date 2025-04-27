@@ -31,21 +31,17 @@ return [
     'connections' => [
 
         'reverb' => [
-    'driver' => 'reverb',
-    'app_id' => env('REVERB_APP_ID', 'reverb-app'),
-    'key' => env('REVERB_APP_KEY'),
-    'secret' => env('REVERB_APP_SECRET'),
-    'app_host' => env('REVERB_APP_HOST', 'reverb.mesax.host'),
-    'host' => env('REVERB_HOST', '127.0.0.1'),
-    'port' => env('REVERB_PORT', 8080),
-    'scheme' => env('REVERB_SCHEME', 'http'),
-    'options' => [
-        'cluster' => env('REVERB_CLUSTER', 'mt1'),
-        'encrypted' => true,
-        'host' => env('REVERB_HOST', '127.0.0.1'),
-        'port' => env('REVERB_PORT', 8080),
-        'scheme' => env('REVERB_SCHEME', 'http'),
-    ],
+            'driver' => 'reverb',
+            'key' => env('REVERB_APP_KEY'),
+            'secret' => env('REVERB_APP_SECRET'),
+            'app_id' => env('REVERB_APP_ID'),
+            'options' => [
+                'host' => env('REVERB_SERVER_HOST', 'reverb'),
+                'port' => env('REVERB_SERVER_PORT', 8081),
+                'scheme' => env('REVERB_SCHEME', 'http'),
+                'encrypted' => false,
+            'useTLS' => false,
+            ],
 ],
 
         'pusher' => [

@@ -25,10 +25,7 @@ Route::get('/chat', function () {
   return view('chat');
 });
 
-Route::get('/test-reverb', function () {
-  event(new PublicMessage('Sistema', 'Teste de broadcasting às ' . now()));
-  return 'Evento enviado, verifique o console no navegador!';
-});
+
 
 // Rota para enviar mensagens
 Route::post('/send-message', function (Request $request) {
