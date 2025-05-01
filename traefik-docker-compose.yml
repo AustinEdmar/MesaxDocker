@@ -2,32 +2,31 @@ version: '3'
 
 networks:
   laravel:
-
+    name: laravel
 
 services:
-  app:
-    container_name: app
-    build:
-      context: ./dockerfiles
-      dockerfile: nginx.dockerfile
-      args:
-        - UID=${UID:-1000}
-        - GID=${GID:-1000}
+  # Traefik reverse proxy
+  traefik:
+    container_name: traefik
+    image: traefik:latest
+    restart: unless-stopped
     ports:
       - "80:80"
+      - "443:443"
       - "8080:8080"
-      
+    command:
+      - "--api.insecure=true"  # Dashboard enabled but no auth (only for dev)
+      - "--api.dashboard=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
     volumes:
-      - ./src:/var/www/html:cached
-      
-    depends_on:
-      - nextjs
-      - php 
-      - mysql
-      - mailhog
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./data/letsencrypt:/letsencrypt
     networks:
       - laravel
-
+  
   nextjs:
     container_name: nextjs
     build:
@@ -35,11 +34,45 @@ services:
       dockerfile: ./dockerfiles/nextjs.dockerfile
     volumes:
       - ./front:/var/www/html:cached
-    ports:
-      - "3000:3000"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.nextjs.rule=Host(`next.localhost`)"
+      - "traefik.http.services.nextjs.loadbalancer.server.port=3000"
     networks:
       - laravel
-  
+    depends_on:
+      - traefik
+
+  app:
+    container_name: app
+    build:
+      context: ./dockerfiles
+      dockerfile: php.dockerfile
+      args:
+        - UID=${UID:-1000}
+        - GID=${GID:-1000}
+    volumes:
+      - ./src:/var/www/html:cached
+    environment:
+      - DB_HOST=mysql
+      - DB_DATABASE=mesax
+      - DB_USERNAME=austin
+      - DB_PASSWORD=923.Eddy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.laravel.rule=Host(`laravel.localhost`)"
+      - "traefik.http.services.laravel.loadbalancer.server.port=8000"
+    depends_on:
+      - traefik
+      - mysql
+      - redis
+      - nextjs
+      - reverb
+      - queue-worker
+      - mailhog
+    networks:
+      - laravel
+
   queue-worker:
     container_name: queue-worker
     build:
@@ -60,47 +93,42 @@ services:
       - mysql
     networks:
       - laravel
-    command: "php artisan queue:work"
+    command: "/usr/local/bin/php artisan queue:work"
 
   reverb:
     container_name: reverb
     build:
-        context: ./dockerfiles
-        dockerfile: php.dockerfile
-        args:
-          - UID=${UID:-1000}
-          - GID=${GID:-1000}
+      context: ./dockerfiles
+      dockerfile: php.dockerfile
+      args:
+        - UID=${UID:-1000}
+        - GID=${GID:-1000}
     restart: always
     user: root
     volumes:
-        - ./src:/var/www/html
-        - ./dockerfiles/reverb-entrypoint.sh:/reverb-entrypoint.sh
-
+      - ./src:/var/www/html
+      - ./dockerfiles/reverb-entrypoint.sh:/reverb-entrypoint.sh
     environment:
-        - DB_HOST=mysql
-        - DB_DATABASE=mesax
-        - DB_USERNAME=austin
-        - DB_PASSWORD=923.Eddy
-        - REVERB_APP_ID=573699
-        - REVERB_APP_KEY=qqmsdqbnqvuhmij41258
-        - REVERB_APP_SECRET=fgvldq8bdjsbqqjssdf4564n6
-        - REVERB_SERVER_HOST=0.0.0.0
-        - REVERB_SERVER_PORT=8081
-    
-    ports:
-        - "8081:8081"
+      - DB_HOST=mysql
+      - DB_DATABASE=mesax
+      - DB_USERNAME=austin
+      - DB_PASSWORD=923.Eddy
+      - REVERB_APP_ID=573699
+      - REVERB_APP_KEY=qqmsdqbnqvuhmij41258
+      - REVERB_APP_SECRET=fgvldq8bdjsbqqjssdf4564n6
+      - REVERB_SERVER_HOST=0.0.0.0
+      - REVERB_SERVER_PORT=8081
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.reverb.rule=Host(`reverb.localhost`)"
+      - "traefik.http.services.reverb.loadbalancer.server.port=8081"
     networks:
-        - laravel
-    #entrypoint: ["/reverb-entrypoint.sh"]
-    #command: "sh -c 'chmod +x /reverb-entrypoint.sh && /reverb-entrypoint.sh'"
-  
-    #entrypoint: ["/bin/sh", "-c"]
-   # command: "chmod +x /usr/local/bin/docker-entrypoint.sh && /usr/local/bin/docker-entrypoint.sh"
+      - laravel
+   # command: "/usr/local/bin/php artisan reverb:start"
   
   mysql:
     container_name: mysql
     image: mysql:9.2.0
-    
     restart: always
     tty: true
     ports:
@@ -108,34 +136,12 @@ services:
     volumes:
       - ./mysql:/var/lib/mysql
     environment:
-      MYSQL_DATABASE: mesax         # Nome do banco de dados
-      MYSQL_USER: austin            # Nome do usuário adicional
-      MYSQL_PASSWORD: 923.Eddy      # Senha do usuário adicional
+      MYSQL_DATABASE: mesax
+      MYSQL_USER: austin
+      MYSQL_PASSWORD: 923.Eddy
       MYSQL_ROOT_PASSWORD: 923.Eddy
       SERVICE_TAGS: dev
       SERVICE_NAME: mysql
-    networks:
-      - laravel
-
-  php:
-    container_name: php
-    build:
-      context: ./dockerfiles
-      dockerfile: php.dockerfile
-      args:
-        - UID=${UID:-1000}
-        - GID=${GID:-1000}
-    ports:
-      - "9000:9000"
-    volumes:
-      - ./src:/var/www/html:cached
-      - ./dockerfiles/entrypoint.sh:/usr/local/bin/docker-entrypoint.sh
-    #entrypoint: ["/usr/local/bin/docker-entrypoint.sh"]
-    depends_on:
-      - mysql
-      - redis
-      - queue-worker
-      - reverb
     networks:
       - laravel
 
@@ -159,7 +165,7 @@ services:
     volumes:
       - ./src:/var/www/html
     depends_on:
-      - php
+      - app
     entrypoint: [ 'composer', '--ignore-platform-reqs' ]
     networks:
       - laravel
@@ -170,7 +176,6 @@ services:
     volumes:
       - ./src:/var/www/html
     ports:
-      - "3000:3000"
       - "3001:3001"
       - "5173:5173"
     working_dir: /var/www/html
@@ -216,10 +221,9 @@ services:
     image: mailhog/mailhog:latest
     ports:
       - "1025:1025"
-      - "8025:8025"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.mailhog.rule=Host(`mailhog.localhost`)"
+      - "traefik.http.services.mailhog.loadbalancer.server.port=8025"
     networks:
       - laravel
-
-  
-  
-  

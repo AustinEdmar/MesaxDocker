@@ -120,13 +120,14 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
 
-            console.log('DOM carregado');
+            console.log('DOM carregado', window.Echo);
 console.log('Echo está disponível?', typeof window.Echo !== 'undefined');
 if (typeof window.Echo !== 'undefined') {
     console.log('Echo configurado com:', {
         broadcaster: window.Echo.connector.options.broadcaster,
         host: window.Echo.connector.options.host,
-        port: window.Echo.connector.options.port
+        port: window.Echo.connector.options.port,
+        cluster: window.Echo.connector.options.cluster
     });
 }
             // Verifica se o Echo está disponível

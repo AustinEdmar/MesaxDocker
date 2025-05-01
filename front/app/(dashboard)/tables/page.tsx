@@ -8,6 +8,17 @@ interface Table {
   status: 'available' | 'reserved';
 }
 
+import {
+    Table,
+    TableBody,
+    TableCaption,
+    TableCell,
+    TableFooter,
+    TableHead,
+    TableHeader,
+    TableRow,
+  } from "@/components/ui/table"
+
 export default function TablesPage() {
     // Renderiza o componente PrefetchTables para fazer o prefetch
     
@@ -24,8 +35,30 @@ export default function TablesPage() {
             <PrefetchTables />
             
             <h1>Mesas</h1>
-            <button onClick={() => refetch()}>Atualizar</button>
-            
+            <button onClick={() => refetch()}>Atualizari</button>
+
+            <Table>
+                <TableCaption>A list of your recent invoices.</TableCaption>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead className="w-[100px]">Invoice</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Method</TableHead>
+                        <TableHead className="text-right">Amount</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {tables.map((table: Table) => (
+                        <TableRow key={table.id}>
+                            <TableCell className="font-medium">{table.number}</TableCell>
+                            <TableCell>{table.status}</TableCell>
+                            <TableCell>{table.status === 'available' ? 'Disponível' : 'Reservada'}</TableCell>
+                            <TableCell className="text-right">{table.status === 'available' ? 'Disponível' : 'Reservada'}</TableCell>
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
+
             {isLoading && <p>Carregando...</p>}
             
             {error && <p>Erro ao carregar dados</p>}
@@ -47,6 +80,8 @@ export default function TablesPage() {
             ) : ( 
                 <p>Nenhuma mesa encontrada</p>
             )}
+
+
         </div>
     )
 }
