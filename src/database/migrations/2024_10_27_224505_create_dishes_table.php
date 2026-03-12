@@ -14,10 +14,7 @@ return new class extends Migration
         Schema::create('dishes', function (Blueprint $table) {
             $table->id();
             $table->foreignId('cuisine_id')->constrained()->onDelete('cascade');
-            //$table->foreignId('dishes_sub_category_id')->constrained()->onDelete('cascade');
-            // Na migration `dishes`
             $table->foreignId('dishes_sub_category_id')->constrained('dishes_sub_categories')->onDelete('cascade');
-           
             $table->string('name');
             $table->string('original_name')->nullable(); // Nome original na língua nativa
             $table->string('slug')->unique();

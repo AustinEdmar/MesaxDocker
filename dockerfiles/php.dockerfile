@@ -1,4 +1,4 @@
-FROM php:8-fpm
+FROM php:8.4-fpm
 
 ARG UID
 ARG GID

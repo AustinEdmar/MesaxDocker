@@ -26,6 +26,7 @@ class AuthController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'phone' => 'required|string|max:255',
+            'active' => 'required|boolean',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
         ]);
@@ -36,6 +37,7 @@ class AuthController extends Controller
                 'name' => $request->name,
                 'email' => $request->email,
                 'phone' => $request->phone,
+                'active' => $request->active,
                 'password' => Hash::make($request->password),
                 'access_level' => 0, // Padrão para usuário regular
             ]);
@@ -57,19 +59,29 @@ class AuthController extends Controller
     
 
     public function login(Request $request)
-    {
-        if (!Auth::attempt($request->only('email', 'password'))) {
-            return response()->json(['message' => 'Unauthorized'], 401);
-        }
+{
+    $request->validate([
+        'email' => 'required|email',
+        'password' => 'required|min:6',
+    ]);
 
-        $user = User::where('email', $request->email)->firstOrFail();
-        $token = $user->createToken('auth_token')->plainTextToken;
-
-        return new AuthResource([
-            'access_token' => $token,
-            'user' => $user,
-        ]);
+    if (!Auth::attempt($request->only('email', 'password'))) {
+        return response()->json([
+            'message' => 'Credenciais incorretas'
+        ], 401);
     }
+
+    $user = User::where('email', $request->email)->first();
+
+    $token = $user->createToken('auth_token')->plainTextToken;
+
+    return response()->json([
+        'access_token' => $token,
+        'token_type' => 'Bearer',
+        'user' => $user,
+    ]);
+}
+
 
     public function logout(Request $request)
     {
@@ -79,7 +91,13 @@ class AuthController extends Controller
 
     public function user(Request $request)
     {
-        return new UserResource($request->user());
+
+        $user = User::where('email', $request->user()->email)->first();
+         return response()->json([
+        'user' => $user,
+         ]);
+         
+        //return new UserResource($request->user());
     }
 
     public function forgotPassword(Request $request)
@@ -130,36 +148,6 @@ class AuthController extends Controller
         return UserResource::collection(User::all());
     }
 
-/*     public function update(Request $request, User $user)
-{
-    // Validação dos campos
-    $validated = $request->validate([
-        'name' => 'sometimes|required|string|max:255',
-        'email' => 'sometimes|required|string|email|max:255|unique:users,email,' . $user->id,
-        'access_level' => 'sometimes|required|integer|in:0,1',
-        'profile_photo' => 'sometimes|file|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
-    ]);
-
-    // Atualiza os campos, exceto a imagem (que será tratada separadamente)
-    $user->update(Arr::except($validated, ['profile_photo']));
-
-    // Lida com o upload da imagem, se existir
-    if ($request->hasFile('profile_photo')) {
-        // Remove a foto antiga, se existir
-        if ($user->profile_photo) {
-            Storage::disk('public')->delete($user->profile_photo);
-        }
-
-        // Armazena a nova foto
-        $photoPath = $request->file('profile_photo')->store('profile-photos', 'public');
-        $user->profile_photo = $photoPath;
-        $user->save();
-    }
-
-    return new UserResource($user);
-} */
-
-
 
 
 public function update(Request $request, User $user)
@@ -201,66 +189,5 @@ public function update(Request $request, User $user)
     return new UserResource($user);
 }
 
-
-
-    // Em seu AuthController
-
-    /* public function update(Request $request, User $user)
-    {
-        // Atualiza os campos exceto a imagem (que será tratada separadamente)
-        $user->update($request->except('profile_photo'));
-    
-        // Lida com upload de imagem, se houver
-        if ($request->hasFile('profile_photo')) {
-            // Remove a foto antiga, se existir
-            if ($user->profile_photo) {
-                Storage::disk('public')->delete($user->profile_photo);
-            }
-    
-            // Armazena a nova foto
-            $photoPath = $request->file('profile_photo')->store('profile-photos', 'public');
-            $user->profile_photo = $photoPath;
-            $user->save();
-        }
-    
-        return new UserResource($user);
-    } */
-    
-
-  /*   public function update(Request $request, User $user)
-    {
-        $validated = $request->validate([
-            'name' => 'sometimes|string|max:255',
-            'email' => 'sometimes|string|email|max:255|unique:users,email,' . $user->id,
-            'access_level' => 'sometimes|integer|in:0,1',
-            'profile_photo' => 'sometimes|string|max:255',
-        ]);
-    
-        // Remove o campo photo da atualização em massa
-        $userDataToUpdate = collect($validated)->except(['photo'])->toArray();
-        $user->update($userDataToUpdate);
-        if ($request->has('profile_photo')) {
-            $user->profile_photo = $request->profile_photo;
-            $user->save();
-        }
-    
-        if ($request->hasFile('photo')) {
-            // Deletar foto antiga
-            if ($user->profile_photo) {
-                Storage::disk('public')->delete($user->profile_photo);
-            }
-    
-            $photoPath = $request->file('photo')->store('profile-photos', 'public');
-            $user->profile_photo = $photoPath;
-            $user->save();
-        }
-    
-        return new UserResource($user);
-    }
- */
-
-
-
-  
 
 }

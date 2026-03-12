@@ -88,6 +88,9 @@ Esta configuração é compatível com a compilação de assets tanto com o [Lar
 
 Depois, execute os seguintes comandos para instalar as dependências e iniciar o servidor de desenvolvimento:
 
+docker-compose run --rm artisan make:migration create_shifts_table --create=shifts
+
+- `docker-compose run --rm composer create-project laravel/laravel .`
 - `docker-compose run --rm npm install`
 - `docker-compose run --rm --service-ports npm run dev`
 

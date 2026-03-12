@@ -66,6 +66,7 @@ export default function Login() {
     try {
       // Usa a ação de login da store
       const success = await login(data.email, data.password)
+      console.log(success)
       
       if (success) {
         // Inicia o temporizador de sessão

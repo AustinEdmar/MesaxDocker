@@ -8,9 +8,20 @@ use Illuminate\Database\Eloquent\Model;
 class Orders extends Model
 {
     use HasFactory;
-    protected $fillable = ['table_id', 'user_id', 'status', 'subtotal', 'iva', 'total'];
+    protected $fillable = [
+    'table_id',
+    'user_id',
+    'shift_id',
+    'status',
+    'subtotal',
+    'iva',
+    'discount',
+    'total',
+    'opened_at',
+    'closed_at'
+];
 
-    public function mesa()
+    public function tables()
     {
         return $this->belongsTo(Tables::class);
     }
@@ -20,8 +31,15 @@ class Orders extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function items()
+    public function shift()
     {
-        return $this->hasMany(Order_Item::class);
+        return $this->belongsTo(Shifts::class);
     }
+
+
+
+    public function items()
+{
+    return $this->hasMany(OrderItem::class, 'order_id');
+}
 }
