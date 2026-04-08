@@ -58,6 +58,7 @@ cd ~  //em 5min
 criar um script que roda mudança no repositório
 
 #!/bin/sh
+git --work-tree=/home/docker/site --git-dir=/home/docker/repo/site.git checkout -f main
 
 -- 1. aponta aonde os arquivos do site ficarao, 2. git dir igual ao repositório inicializado com um repositório git vazio
 
@@ -75,7 +76,10 @@ sudo chmod +x post-receive
 git init
 
 22 - 
-git remote add origin ssh://docker@192.168.0.121/home/docker/repo/site.git
+git remote add origin ssh://docker@167.86.87.129/home/docker/repo/site.git
+
+se ja tiver alterar
+ou git remote set-url origin ssh://docker@167.86.87.129/home/docker/repo/site.git
 
 git add .
 

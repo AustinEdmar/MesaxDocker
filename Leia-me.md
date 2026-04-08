@@ -39,6 +39,7 @@ Três containers adicionais são incluídos para lidar com os comandos do Compos
 - `docker-compose run --rm npm run dev`
 - `docker-compose run --rm artisan migrate`
 - `docker-compose run --rm artisan storage:link`
+sudo docker-compose run --rm --user root artisan storage:link
 
 
 ## Problemas de Permissões
