@@ -19,9 +19,11 @@ class ProductResource extends JsonResource
             'name' => $this->name,
             'description' => $this->description,
             'price' => (float) $this->price,
+            'iva' => (int) $this->iva,
             'stock' => (int) $this->stock,
-            'image_url' => $this->image_path 
-                ? asset('storage/' . $this->image_path) 
+
+            'image_url' => $this->image_path
+                ? asset('storage/' . $this->image_path)
                 : null,
             'category' => $this->whenLoaded('category'),
             //'created_at' => $this->created_at,

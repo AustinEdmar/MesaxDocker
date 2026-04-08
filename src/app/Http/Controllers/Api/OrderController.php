@@ -182,25 +182,35 @@ class OrderController extends Controller
     /**
      * ➖ decrement Item
      */
-    /*  public function decrementItem($itemId)
+
+
+    /*  public function decrementItem(Request $request, $orderId)
      {
+         $request->validate([
+             'product_id' => 'required|exists:products,id'
+         ]);
+
+
+
+
          DB::beginTransaction();
 
          try {
 
-             $item = OrderItem::lockForUpdate()->findOrFail($itemId);
-             $order = $item->order;
+             $order = Orders::lockForUpdate()->findOrFail($orderId);
 
-             if ($order->status !== 'open') {
-                 DB::rollBack();
-                 return response()->json([
-                     'message' => 'Pedido já fechado.'
-                 ], 400);
-             }
+             //  $order->items()->id;
 
-             $product = Product::lockForUpdate()->findOrFail($item->product_id);
+             $table = Tables::where('id', $order->table_id)->first();
 
-             // se quantidade > 1 apenas decrementa
+             $item = OrderItem::where('order_id', $orderId)
+                 ->where('product_id', $request->product_id)
+                 ->lockForUpdate()
+                 ->firstOrFail();
+
+             $product = Product::lockForUpdate()
+                 ->findOrFail($item->product_id);
+
              if ($item->quantity > 1) {
 
                  $item->decrement('quantity');
@@ -210,15 +220,26 @@ class OrderController extends Controller
                  ]);
 
              } else {
-
-                 // se quantidade == 1 remove item
                  $item->delete();
+
+                 if ($order->items()->count() == 0) {
+
+                     $order->delete();
+
+
+                 }
+                 $table->update([
+                     'status' => 'available'
+                 ]);
+
              }
+
+
 
              // devolve estoque
              $product->increment('stock', 1);
 
-             // recalcula total
+             // recalcula
              $subtotal = $order->items()->sum('subtotal');
              $iva = $subtotal * 0.14;
              $total = $subtotal + $iva;
@@ -232,7 +253,7 @@ class OrderController extends Controller
              DB::commit();
 
              return response()->json([
-                 'message' => 'Item atualizado.'
+                 'message' => 'Item decrementado'
              ]);
 
          } catch (\Exception $e) {
@@ -240,7 +261,7 @@ class OrderController extends Controller
              DB::rollBack();
 
              return response()->json([
-                 'error' => 'Erro ao atualizar item.'
+                 'error' => $e->getMessage()
              ], 500);
          }
      } */
@@ -249,62 +270,59 @@ class OrderController extends Controller
     public function decrementItem(Request $request, $orderId)
     {
         $request->validate([
-            'product_id' => 'required|exists:products,id'
+            'product_id' => 'required|exists:products,id',
+            'quantity' => 'integer|min:1' // opcional, default 1
         ]);
+
+        $quantity = $request->input('quantity', 1); // usa o que vier, ou 1
 
         DB::beginTransaction();
 
         try {
-
             $order = Orders::lockForUpdate()->findOrFail($orderId);
+            $table = Tables::where('id', $order->table_id)->first();
 
             $item = OrderItem::where('order_id', $orderId)
                 ->where('product_id', $request->product_id)
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            $product = Product::lockForUpdate()
-                ->findOrFail($item->product_id);
+            $product = Product::lockForUpdate()->findOrFail($item->product_id);
 
-            if ($item->quantity > 1) {
-
-                $item->decrement('quantity');
-
+            if ($item->quantity > $quantity) {
+                $item->decrement('quantity', $quantity);
                 $item->update([
                     'subtotal' => $item->quantity * $item->unit_price
                 ]);
-
             } else {
+                // remove o item e devolve o que ainda estava
+                $quantity = $item->quantity; // devolve só o que existe
                 $item->delete();
+
+                if ($order->items()->count() === 0) {
+                    $order->delete();
+                    $table->update(['status' => 'available']);
+                }
             }
 
-            // devolve estoque
-            $product->increment('stock', 1);
+            $product->increment('stock', $quantity);
 
-            // recalcula
             $subtotal = $order->items()->sum('subtotal');
             $iva = $subtotal * 0.14;
-            $total = $subtotal + $iva;
 
             $order->update([
                 'subtotal' => $subtotal,
                 'iva' => $iva,
-                'total' => $total
+                'total' => $subtotal + $iva
             ]);
 
             DB::commit();
 
-            return response()->json([
-                'message' => 'Item decrementado'
-            ]);
+            return response()->json(['message' => 'Item decrementado']);
 
         } catch (\Exception $e) {
-
             DB::rollBack();
-
-            return response()->json([
-                'error' => $e->getMessage()
-            ], 500);
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 

@@ -6,6 +6,8 @@ use App\Models\User;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+
 
 class DatabaseSeeder extends Seeder
 {
@@ -17,8 +19,15 @@ class DatabaseSeeder extends Seeder
         // User::factory(10)->create();
 
         User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+            'name' => 'Austin',
+            'email' => 'austin@gmail.com',
+            'password' => Hash::make('923.eddy'),
+        ]);
+
+        User::factory()->create([
+            'name' => 'Martins',
+            'email' => 'martins@gmail.com',
+            'password' => Hash::make('923.eddy'),
         ]);
 
         // Gera 30 registros para a tabela 'tables'

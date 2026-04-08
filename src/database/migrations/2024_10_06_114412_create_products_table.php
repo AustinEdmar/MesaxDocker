@@ -4,8 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     /**
      * Run the migrations.
      */
@@ -16,10 +15,12 @@ return new class extends Migration
             $table->string('name');
             $table->text('description');
             $table->decimal('price', 8, 2);
+            // 👇 IVA (5%, 14%, 0%)
+            $table->enum('iva', [0, 5, 7, 14])->default(14);
             $table->integer('stock')->default(0);
-            $table->foreignId('category_id')->constrained()->nullable()->onDelete('cascade');
+            $table->foreignId('category_id')->constrained()->onDelete('cascade');
 
-             $table->string('image_path')->nullable();
+            $table->string('image_path')->nullable();
             $table->timestamps();
         });
     }

@@ -11,32 +11,32 @@ use Illuminate\Support\Facades\Storage;
 class ProductController extends Controller
 {
     // LISTAR (com paginação)
-   public function index(Request $request)
-{
-    $query = Product::with('category');
+    public function index(Request $request)
+    {
+        $query = Product::with('category');
 
-    // 🔹 Filtro por categoria
-    if ($request->filled('category_id')) {
-        $query->where('category_id', $request->category_id);
+        // 🔹 Filtro por categoria
+        if ($request->filled('category_id')) {
+            $query->where('category_id', $request->category_id);
+        }
+
+        // 🔹 Busca textual
+        if ($request->filled('search')) {
+            $search = $request->search;
+
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%")
+                    ->orWhere('price', 'like', "%{$search}%");
+            });
+        }
+
+        return ProductResource::collection(
+            $query->latest()->get()
+        );
     }
 
-    // 🔹 Busca textual
-    if ($request->filled('search')) {
-        $search = $request->search;
 
-        $query->where(function ($q) use ($search) {
-            $q->where('name', 'like', "%{$search}%")
-              ->orWhere('description', 'like', "%{$search}%")
-              ->orWhere('price', 'like', "%{$search}%");
-        });
-    }
-
-    return ProductResource::collection(
-        $query->latest()->get()
-    );
-}
-
-    
 
     // MOSTRAR UM PRODUTO
     public function show(Product $product)
@@ -48,32 +48,34 @@ class ProductController extends Controller
 
     // CRIAR
     public function store(Request $request)
-{
-    $request->validate([
-        'name' => 'required|string|max:255',
-        'description' => 'nullable|string',
-        'price' => 'required|decimal:0,2|min:0',
-        'stock' => 'required|integer|min:0',
-        'category_id' => 'required|exists:categories,id',
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'price' => 'required|decimal:0,2|min:0',
+            'iva' => 'required|numeric|min:0|max:100', // 👈 adicionar
+            'stock' => 'required|integer|min:0',
+            'category_id' => 'required|exists:categories,id',
 
-        'image' => 'required|image|mimes:jpg,jpeg,png,webp|max:2048'
-    ]);
+            'image' => 'required|image|mimes:jpg,jpeg,png,webp|max:2048'
+        ]);
 
-    // 🔥 Salva a imagem
-    $imagePath = $request->file('image')
-        ->store('product_images', 'public');
+        // 🔥 Salva a imagem
+        $imagePath = $request->file('image')
+            ->store('product_images', 'public');
 
-    $product = \App\Models\Product::create([
-        'name' => $request->name,
-        'description' => $request->description,
-        'price' => $request->price,
-        'stock' => $request->stock,
-        'category_id' => $request->category_id,
-        'image_path' => $imagePath
-    ]);
+        $product = Product::create([
+            'name' => $request->name,
+            'description' => $request->description,
+            'price' => $request->price,
+            'iva' => $request->iva, // 👈 adicionar
+            'stock' => $request->stock,
+            'category_id' => $request->category_id,
+            'image_path' => $imagePath
+        ]);
 
-    return new ProductResource($product);
-}
+        return new ProductResource($product);
+    }
 
     // ATUALIZAR
     public function update(Request $request, Product $product)
@@ -82,6 +84,7 @@ class ProductController extends Controller
             'name' => 'sometimes|string|max:255',
             'description' => 'sometimes|string',
             'price' => 'sometimes|decimal:0,2|min:0',
+            'iva' => 'sometimes|numeric|min:0|max:100',
             'stock' => 'sometimes|integer|min:0',
             'category_id' => 'sometimes|exists:categories,id',
             'image' => 'nullable|image|max:2048',
