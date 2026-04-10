@@ -182,6 +182,9 @@ sudo chmod -R 777 ./src/routes
 sudo chmod -R 777 ./src/storage
 
 
+fa;
+
+
 ### 2. Dê permissão de execução no host
 No terminal, rode:
 
@@ -607,3 +610,23 @@ austin@server:/home/docker/site$ sudo chmod +x ./dockerfiles/reverb-entrypoint.s
 sudo chmod +x ./dockerfiles/entrypoint.sh
 
 sudo chmod +x /etc/systemd/system/docker-compose-app.service
+
+
+
+
+##### falha de permissao no push 
+
+Os ficheiros pertencem ao user com UID 1001 (provavelmente root do container Docker) e não ao user docker do servidor.
+Corrige agora
+bashsudo chown -R docker:docker /home/docker/site/src/
+Se não tiveres sudo, entra como root:
+bashsu -
+chown -R docker:docker /home/docker/site/src/
+Ou da tua máquina:
+bashssh root@167.86.87.129 "chown -R docker:docker /home/docker/site/src/"
+
+Depois actualiza o post-receive para corrigir automaticamente a cada push:
+sh#!/bin/sh
+git --work-tree=/home/docker/site --git-dir=/home/docker/repo/site.git checkout -f main
+chown -R docker:docker /home/docker/site/src/
+Assim nunca mais tens este problema.
