@@ -29,7 +29,7 @@ Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 
 
 Route::middleware('auth:sanctum')->group(function () {
-    
+
     Route::apiResource('users', AuthController::class);
     Route::apiResource('tables', TableController::class);
     Route::get('/user', [AuthController::class, 'user']);
@@ -39,21 +39,21 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/shifts/current', [ShiftsController::class, 'current']);
     Route::post('/shifts/open', [ShiftsController::class, 'open']);
     Route::post('/shifts/close', [ShiftsController::class, 'close']);
-    
 
-  //  Route::patch('/users/{user}', [AuthController::class, 'updateUser']);
-    
-   // Route::post('/update-user', [AuthController::class, 'updateUser']);
 
-   //Products
-   Route::apiResource('products', ProductController::class);
+    //  Route::patch('/users/{user}', [AuthController::class, 'updateUser']); ok
 
-   //Categories
-   Route::apiResource('categories', CategoryController::class);
+    // Route::post('/update-user', [AuthController::class, 'updateUser']);
 
-   //Orders
-   Route::post('/orders/open', [OrderController::class, 'open']);
-   Route::get('/orders', [OrderController::class, 'getOrders']);
+    //Products
+    Route::apiResource('products', ProductController::class);
+
+    //Categories
+    Route::apiResource('categories', CategoryController::class);
+
+    //Orders
+    Route::post('/orders/open', [OrderController::class, 'open']);
+    Route::get('/orders', [OrderController::class, 'getOrders']);
     Route::post('/orders/{id}/add-item', [OrderController::class, 'addItem']);
     Route::post('/orders/{id}/decrement-item', [OrderController::class, 'decrementItem']);
     Route::delete('/orders/item/{id}', [OrderController::class, 'removeItem']);
