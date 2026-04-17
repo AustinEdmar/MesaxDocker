@@ -16,13 +16,13 @@ services:
     ports:
       #- "80:80"
       - "8080:8080"
-      
+
     volumes:
       - ./src:/var/www/html:cached
-      
+
     depends_on:
-      
-      - php 
+
+      - php
       - mysql
       - mailhog
     networks:
@@ -39,7 +39,7 @@ services:
       - "3000:3000"
     networks:
       - laravel
-  
+
   queue-worker:
     container_name: queue-worker
     build:
@@ -65,42 +65,42 @@ services:
   reverb:
     container_name: reverb
     build:
-        context: ./dockerfiles
-        dockerfile: php.dockerfile
-        args:
-          - UID=${UID:-1000}
-          - GID=${GID:-1000}
+      context: ./dockerfiles
+      dockerfile: php.dockerfile
+      args:
+        - UID=${UID:-1000}
+        - GID=${GID:-1000}
     restart: always
     user: root
     volumes:
-        - ./src:/var/www/html
-        - ./dockerfiles/reverb-entrypoint.sh:/reverb-entrypoint.sh
+      - ./src:/var/www/html
+      - ./dockerfiles/reverb-entrypoint.sh:/reverb-entrypoint.sh
 
     environment:
-        - DB_HOST=mysql
-        - DB_DATABASE=mesax
-        - DB_USERNAME=austin
-        - DB_PASSWORD=923.Eddy
-        - REVERB_APP_ID=573699
-        - REVERB_APP_KEY=qqmsdqbnqvuhmij41258
-        - REVERB_APP_SECRET=fgvldq8bdjsbqqjssdf4564n6
-        - REVERB_SERVER_HOST=0.0.0.0
-        - REVERB_SERVER_PORT=8081
-    
+      - DB_HOST=mysql
+      - DB_DATABASE=mesax
+      - DB_USERNAME=austin
+      - DB_PASSWORD=923.Eddy
+      - REVERB_APP_ID=573699
+      - REVERB_APP_KEY=qqmsdqbnqvuhmij41258
+      - REVERB_APP_SECRET=fgvldq8bdjsbqqjssdf4564n6
+      - REVERB_SERVER_HOST=0.0.0.0
+      - REVERB_SERVER_PORT=8081
+
     ports:
-        - "8081:8081"
+      - "8081:8081"
     networks:
-        - laravel
+      - laravel
     #entrypoint: ["/reverb-entrypoint.sh"]
     #command: "sh -c 'chmod +x /reverb-entrypoint.sh && /reverb-entrypoint.sh'"
-  
+
     #entrypoint: ["/bin/sh", "-c"]
-   # command: "chmod +x /usr/local/bin/docker-entrypoint.sh && /usr/local/bin/docker-entrypoint.sh"
-  
+    # command: "chmod +x /usr/local/bin/docker-entrypoint.sh && /usr/local/bin/docker-entrypoint.sh"
+
   mysql:
     container_name: mysql
     image: mysql:9.2.0
-    
+
     restart: always
     tty: true
     ports:
@@ -108,9 +108,9 @@ services:
     volumes:
       - ./mysql:/var/lib/mysql
     environment:
-      MYSQL_DATABASE: mesax         # Nome do banco de dados
-      MYSQL_USER: austin            # Nome do usuário adicional
-      MYSQL_PASSWORD: 923.Eddy      # Senha do usuário adicional
+      MYSQL_DATABASE: mesax # Nome do banco de dados
+      MYSQL_USER: austin # Nome do usuário adicional
+      MYSQL_PASSWORD: 923.Eddy # Senha do usuário adicional
       MYSQL_ROOT_PASSWORD: 923.Eddy
       SERVICE_TAGS: dev
       SERVICE_NAME: mysql
@@ -193,7 +193,7 @@ services:
     entrypoint: [ 'php', '/var/www/html/artisan' ]
     networks:
       - laravel
-  
+
   pest:
     container_name: pest
     build:
@@ -219,7 +219,3 @@ services:
       - "8025:8025"
     networks:
       - laravel
-
-  
-  
-  
