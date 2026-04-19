@@ -25,7 +25,6 @@ services:
       - php
       - mysql
       - mailhog
-      - nextjs
 
     networks:
       - laravel
