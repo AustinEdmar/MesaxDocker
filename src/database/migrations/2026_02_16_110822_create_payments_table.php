@@ -4,8 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     /**
      * Run the migrations.
      */
@@ -15,7 +14,8 @@ return new class extends Migration
             $table->id();
             $table->foreignId('order_id')->constrained()->cascadeOnDelete();
             $table->foreignId('shift_id')->constrained()->cascadeOnDelete();
-
+            $table->decimal('received', 10, 2)->nullable();
+            $table->decimal('change', 10, 2)->nullable();
             $table->enum('method', ['cash', 'card', 'QrCode', 'BankTransfer']);
             $table->decimal('amount', 10, 2);
             $table->timestamp('paid_at')->useCurrent();

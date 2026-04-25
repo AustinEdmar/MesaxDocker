@@ -14,8 +14,8 @@ class CategoryController extends Controller
     public function index()
     {
         $categories = Category::latest()->get()->map(function ($category) {
-            $category->image_url = $category->image_path 
-                ? asset('storage/' . $category->image_path) 
+            $category->image_url = $category->image_path
+                ? asset('storage/' . $category->image_path)
                 : null;
 
             return $category;
@@ -56,7 +56,8 @@ class CategoryController extends Controller
     public function update(Request $request, Category $category)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:categories,name,' . $category->id,
+
+            'name' => 'sometimes|string|max:255|unique:categories,name,' . $category->id,
             'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048'
         ]);
 

@@ -1,89 +1,167 @@
-The java.io.IOException: Failed to load asset path /data/app/.../base.apk error is a known issue in Android development, often triggered when the system's ResourcesManager loses the connection to the APK's assets. This typically happens during "Apply Changes" (Hot Swap) or when an Activity is recreated with a stale context while accessing system-level services (like the Sunmi Printer).
-I have applied the following fixes to your project:
-1.
-Fixed Splash Screen Initialization: In MainActivity.kt, installSplashScreen() was being called after super.onCreate(). This is a common cause of resource loading issues. It has been moved to the very first line of onCreate.
-2.
-Used Application Context for Printer: I updated MainActivity.kt and CartScreen.kt to pass applicationContext to the SunmiPrinter. Using a long-lived application context prevents the printer service from holding onto an Activity context that might become invalid, which often leads to the base.apk loading error.
-3.
-Standardized SDK Versions: Your build.gradle.kts was targeting API 36 (Android 16/Preview). I downgraded this to API 35 (Android 15), which is the current stable target and less likely to exhibit experimental resource management bugs.
+package com.austin.mesax.screens.profile
 
-To complete the fix:
-1.
-Clean and Rebuild: Go to Build > Clean Project, then Build > Rebuild Project.
-2.
-Cold Boot: If you are using an emulator, perform a "Cold Boot". If you are using a physical device (like a Sunmi terminal), uninstall the app completely and reinstall it from scratch. This clears the cached asset paths in the OS that were causing the IOException.
-3.
-Avoid "Apply Changes": When working with libraries that bind to background services (like the printer), prefer a full "Run" (Shift+F10) over "Apply Changes" to ensure the APK asset path is correctly refreshed.
-
-
-
-
-
-
-<?php
-
-
-use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\TableController;
-use App\Http\Controllers\Api\ShiftsController;
-use App\Http\Controllers\Api\OrderController;
-use App\Http\Controllers\Api\ProductController;
-use App\Http\Controllers\Api\CategoryController;
-
-use Illuminate\Support\Facades\Route;
-
-/* Route::get('/user', function (Request $request) {
-    return $request->user();
-})->middleware('auth:sanctum'); */
-
-Route::get('/teste', function () {
-    return 'teste';
-});
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavHostController
+import com.austin.mesax.data.model.UiStates.AuthUiState
+import com.austin.mesax.data.model.UiStates.UserUiState
+import com.austin.mesax.navigation.Screens
+import com.austin.mesax.screens.home.components.ScreenScaffold
+import com.austin.mesax.viewmodel.AuthViewModel
+import com.austin.mesax.viewmodel.HomeViewModel
+import com.austin.mesax.viewmodel.OrderViewModel
+import com.austin.mesax.viewmodel.ShiftViewModel
 
 
-//Route::get('/', [App\Http\Controllers\Api\AuthController::class, 'index']);
+@Composable
+fun OrdersScreen(
+    navController: NavHostController,
+    modifier: Modifier = Modifier,
+    onProfileClick: () -> Unit,
+    AuthviewModel: AuthViewModel = hiltViewModel(),
+    HomeViewModel: HomeViewModel = hiltViewModel(),
+    shiftViewModel: ShiftViewModel = hiltViewModel(),
+    orderViewModel: OrderViewModel = hiltViewModel(),
 
-//Route::get('/', [AuthController::class, 'index']);
-Route::post('/register', [AuthController::class, 'register']);
-Route::post('/login', [AuthController::class, 'login']);
-Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
-Route::post('/reset-password', [AuthController::class, 'resetPassword']);
-
-
-Route::middleware('auth:sanctum')->group(function () {
-
-    Route::apiResource('users', AuthController::class);
-    Route::apiResource('tables', TableController::class);
-    Route::get('/user', [AuthController::class, 'user']);
-    Route::post('/logout', [AuthController::class, 'logout']);
-
-    //shifts
-    Route::get('/shifts/current', [ShiftsController::class, 'current']);
-    Route::post('/shifts/open', [ShiftsController::class, 'open']);
-    Route::post('/shifts/close', [ShiftsController::class, 'close']);
+) {
+    val uiState = AuthviewModel.uiState
+    val shift by shiftViewModel.shift.collectAsState()
+    //val userTotalSales by orderViewModel.userTotalSales.collectAsState()
+    val orders by orderViewModel.orders.collectAsState()
 
 
-    //  Route::patch('/users/{user}', [AuthController::class, 'updateUser']); ok
+    LaunchedEffect(uiState) {
+        if (uiState is AuthUiState.Unauthenticated) {
+            navController.navigate(Screens.Login.route) {
+                popUpTo(0) { inclusive = true }
+            }
+        }
+    }
 
-    // Route::post('/update-user', [AuthController::class, 'updateUser']);
+    LaunchedEffect(Unit) {
+        shift?.userId?.let {
+            orderViewModel.getOrderByUser(it)
+        }
+    }
 
-    //Products
-    Route::apiResource('products', ProductController::class);
+    val isLoading = uiState is AuthUiState.Loading
 
-    //Categories
-    Route::apiResource('categories', CategoryController::class);
 
-    //Orders
-    Route::post('/orders/open', [OrderController::class, 'open']);
-    Route::get('/orders', [OrderController::class, 'getOrders']);
-    Route::post('/orders/{id}/add-item', [OrderController::class, 'addItem']);
-    Route::post('/orders/{id}/decrement-item', [OrderController::class, 'decrementItem']);
-    Route::delete('/orders/item/{id}', [OrderController::class, 'removeItem']);
-    Route::post('/orders/{id}/close', [OrderController::class, 'close']);
 
-    // Admin routes
-    Route::middleware('access.level:1')->group(function () {
-        Route::get('/admin/users', [AuthController::class, 'listUsers']);
-        Route::put('/admin/users/{user}', [AuthController::class, 'updateUser']);
-    });
-});
+    ScreenScaffold(
+        title = "Caixa: ${shift?.userName ?: "Nenhum"}",
+        amountTitle = if (shift?.status == "open") {
+            "Maneio: ${shift?.initialAmount ?: 0.0} kz"
+        } else {
+            "0.0 kz"
+        },
+        showMenu = true,
+        showCart = true,
+        showProfile = false,
+        onProfileClick = onProfileClick,
+        navController = navController, // 👈
+
+    ) {
+
+
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
+        ) {
+
+            items(orders) { order ->
+
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    elevation = CardDefaults.cardElevation(4.dp)
+                ) {
+
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+
+                        Row(
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+
+                            Text(
+                                text = "Order #${order.id}",
+                                fontWeight = FontWeight.Bold
+                            )
+
+                            Text(
+                                text = order.status,
+                                color = Color(0xFF4CAF50)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Text(
+                            text = "Mesa: ${order.table_id}",
+                            color = Color.Gray
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Divider()
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Row(
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+
+                            Text("Subtotal")
+
+                            Text(
+                                text = "${order.subtotal} kz",
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        Row(
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+
+                            Text("Total")
+
+                            Text(
+                                text = "${order.total} kz",
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                    }
+                }
+            }
+        }
+    }
+}

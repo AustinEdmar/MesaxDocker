@@ -103,7 +103,6 @@ class OrderController extends Controller
         DB::beginTransaction();
 
         try {
-
             $order = Orders::where('id', $orderId)
                 ->where('status', 'open')
                 ->lockForUpdate()
@@ -115,65 +114,70 @@ class OrderController extends Controller
 
             if ($product->stock < $request->quantity) {
                 DB::rollBack();
-                return response()->json([
-                    'message' => 'Estoque insuficiente.'
-                ], 400);
+                return response()->json(['message' => 'Estoque insuficiente.'], 400);
             }
 
-            // 🔎 verifica se item já existe no pedido
             $item = OrderItem::where('order_id', $order->id)
                 ->where('product_id', $product->id)
                 ->lockForUpdate()
                 ->first();
 
             if ($item) {
-
-                // incrementa quantidade
-                $item->increment('quantity', $request->quantity);
+                $newQty = $item->quantity + $request->quantity;
+                $subtotal = $newQty * $item->unit_price;
+                $ivaAmount = $subtotal * ($item->iva_rate / 100); // ✅ usa IVA do item
 
                 $item->update([
-                    'subtotal' => $item->quantity * $item->unit_price
+                    'quantity' => $newQty,
+                    'subtotal' => $subtotal,
+                    'iva_amount' => $ivaAmount,
+                    'total_with_iva' => $subtotal + $ivaAmount,
                 ]);
 
             } else {
+                $subtotal = $product->price * $request->quantity;
+                $ivaRate = $product->iva; // ex: 14 ou 7
+                $ivaAmount = $subtotal * ($ivaRate / 100); // ✅ IVA correto por produto
 
-                // cria item novo
                 OrderItem::create([
                     'order_id' => $order->id,
                     'product_id' => $product->id,
                     'quantity' => $request->quantity,
                     'unit_price' => $product->price,
-                    'subtotal' => $product->price * $request->quantity
+                    'iva_rate' => $ivaRate,
+                    'iva_amount' => $ivaAmount,
+                    'subtotal' => $subtotal,
+                    'total_with_iva' => $subtotal + $ivaAmount,
                 ]);
             }
 
-            // 🔻 diminui estoque
             $product->decrement('stock', $request->quantity);
 
-            // 🔁 recalcula total
-            $subtotal = $order->items()->sum('subtotal');
-            $iva = $subtotal * 0.14;
-            $total = $subtotal + $iva;
+            // ✅ recalcula totais somando IVA de cada item individualmente
+            $subtotalGeral = $order->items()->sum('subtotal');
+            $ivaGeral = $order->items()->sum('iva_amount');
+            $totalGeral = $subtotalGeral + $ivaGeral;
 
             $order->update([
-                'subtotal' => $subtotal,
-                'iva' => $iva,
-                'total' => $total
+                'subtotal' => $subtotalGeral,
+                'iva' => $ivaGeral,
+                'total' => $totalGeral,
             ]);
 
             DB::commit();
 
             return response()->json([
-                'message' => 'Produto adicionado com sucesso.'
+                'message' => 'Produto adicionado com sucesso.',
+                'resumo' => [
+                    'subtotal' => $subtotalGeral,
+                    'iva' => $ivaGeral,
+                    'total' => $totalGeral,
+                ]
             ]);
 
         } catch (\Exception $e) {
-
             DB::rollBack();
-
-            return response()->json([
-                'error' => $e->getMessage()
-            ], 500);
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 
@@ -183,88 +187,6 @@ class OrderController extends Controller
      * ➖ decrement Item
      */
 
-
-    /*  public function decrementItem(Request $request, $orderId)
-     {
-         $request->validate([
-             'product_id' => 'required|exists:products,id'
-         ]);
-
-
-
-
-         DB::beginTransaction();
-
-         try {
-
-             $order = Orders::lockForUpdate()->findOrFail($orderId);
-
-             //  $order->items()->id;
-
-             $table = Tables::where('id', $order->table_id)->first();
-
-             $item = OrderItem::where('order_id', $orderId)
-                 ->where('product_id', $request->product_id)
-                 ->lockForUpdate()
-                 ->firstOrFail();
-
-             $product = Product::lockForUpdate()
-                 ->findOrFail($item->product_id);
-
-             if ($item->quantity > 1) {
-
-                 $item->decrement('quantity');
-
-                 $item->update([
-                     'subtotal' => $item->quantity * $item->unit_price
-                 ]);
-
-             } else {
-                 $item->delete();
-
-                 if ($order->items()->count() == 0) {
-
-                     $order->delete();
-
-
-                 }
-                 $table->update([
-                     'status' => 'available'
-                 ]);
-
-             }
-
-
-
-             // devolve estoque
-             $product->increment('stock', 1);
-
-             // recalcula
-             $subtotal = $order->items()->sum('subtotal');
-             $iva = $subtotal * 0.14;
-             $total = $subtotal + $iva;
-
-             $order->update([
-                 'subtotal' => $subtotal,
-                 'iva' => $iva,
-                 'total' => $total
-             ]);
-
-             DB::commit();
-
-             return response()->json([
-                 'message' => 'Item decrementado'
-             ]);
-
-         } catch (\Exception $e) {
-
-             DB::rollBack();
-
-             return response()->json([
-                 'error' => $e->getMessage()
-             ], 500);
-         }
-     } */
 
 
     public function decrementItem(Request $request, $orderId)
@@ -381,7 +303,10 @@ class OrderController extends Controller
     {
         $request->validate([
             'payment_method' => 'required|in:cash,card,QrCode,BankTransfer',
-            'table_id' => 'required|exists:tables,number'
+            'table_id' => 'required|exists:tables,number',
+            'received' => 'nullable|numeric',
+            'change' => 'nullable|numeric'
+
         ]);
 
         /* $order = Orders::where('id', $orderId)
@@ -416,7 +341,9 @@ class OrderController extends Controller
                 'shift_id' => $shift->id,
                 //'user_id' => Auth::user()->id,
                 'method' => $request->payment_method,
-                'amount' => $order->total
+                'amount' => $order->total,
+                'received' => $request->received,
+                'change' => $request->change
             ]);
 
             // Atualizar pedido

@@ -44,7 +44,12 @@ class DatabaseSeeder extends Seeder
         }
 
         DB::table('tables')->insert($tables);
+        // 👇 chama aqui
+        $this->call([
+            CategorySeeder::class,
+            ProductSeeder::class,
+        ]);
 
-        $this->command->info('30 registros criados na tabela "tables".');
+        $this->command->info('Seed concluído.');
     }
 }

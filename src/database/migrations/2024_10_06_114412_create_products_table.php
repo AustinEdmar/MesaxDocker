@@ -16,7 +16,8 @@ return new class extends Migration {
             $table->text('description');
             $table->decimal('price', 8, 2);
             // 👇 IVA (5%, 14%, 0%)
-            $table->enum('iva', [0, 5, 7, 14])->default(14);
+
+            $table->unsignedTinyInteger('iva')->default(14);
             $table->integer('stock')->default(0);
             $table->foreignId('category_id')->constrained()->onDelete('cascade');
 

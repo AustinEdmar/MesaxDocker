@@ -18,7 +18,8 @@ docker-compose up -d --build app
 docker-compose run --rm  artisan config:publish cors 
 docker-compose run --rm composer create-project laravel/laravel .
 docker-compose run --rm npm run dev
-
+docker-compose run --rm  artisan make:seeder CategorySeeder
+docker-compose run --rm artisan migrate:fresh --seed
 ```
 
 Após a conclusão, siga as etapas do arquivo [src/README.md](src/README.md) para adicionar seu projeto Laravel (ou criar um novo em branco).
@@ -34,6 +35,8 @@ Levantar a rede do Docker Compose com `app` em vez de apenas `up` garante que ap
 - **mailhog** - `:8025`
 
 Três containers adicionais são incluídos para lidar com os comandos do Composer, NPM e Artisan *sem* a necessidade de instalar essas plataformas no seu computador local. Utilize os seguintes exemplos de comando no diretório raiz do seu projeto, ajustando conforme necessário:
+
+docker-compose run --rm artisan make:migration add_difference_to_shifts_table
 
 - `docker-compose run --rm composer update`
 - `docker-compose run --rm npm run dev`

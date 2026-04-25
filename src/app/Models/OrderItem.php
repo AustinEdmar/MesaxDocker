@@ -14,10 +14,13 @@ class OrderItem extends Model
         'product_id',
         'quantity',
         'unit_price',
+        'iva_amount',
+        'iva_rate',
         'subtotal',
+        'total_with_iva',
     ];
 
-    
+
 
     public function order(): BelongsTo
     {
