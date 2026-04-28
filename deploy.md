@@ -1,4 +1,4 @@
-sudo apt-get update
+sudo apt-get update 2x
 sudo apt-get install git
 
 2- add usuario nao root com previlégios sudo
