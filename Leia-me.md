@@ -20,6 +20,7 @@ docker-compose run --rm composer create-project laravel/laravel .
 docker-compose run --rm npm run dev
 docker-compose run --rm  artisan make:seeder CategorySeeder
 docker-compose run --rm artisan migrate:fresh --seed
+docker compose run --rm artisan optimize:clear
 ```
 
 Após a conclusão, siga as etapas do arquivo [src/README.md](src/README.md) para adicionar seu projeto Laravel (ou criar um novo em branco).
