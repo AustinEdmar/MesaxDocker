@@ -302,7 +302,7 @@ class OrderController extends Controller
     public function close(Request $request, $orderId)
     {
         $request->validate([
-            'payment_method' => 'required|in:cash,card,QrCode,BankTransfer',
+            'payment_method' => 'required|in:cash,card,QrCode',
             'table_id' => 'required|exists:tables,number',
             'received' => 'nullable|numeric',
             'change' => 'nullable|numeric'

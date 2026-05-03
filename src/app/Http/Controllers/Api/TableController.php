@@ -9,12 +9,17 @@ use Illuminate\Http\Request;
 
 class TableController extends Controller
 {
+    // public function index()
+    // {
+    //     $tables = Tables::all();
+    //     return TableResource::collection($tables);
+    // }
+
     public function index()
     {
-        $tables = Tables::all();
+        $tables = Tables::with('orders')->get();
         return TableResource::collection($tables);
     }
-
     public function store(Request $request)
     {
         $request->validate([
@@ -37,7 +42,7 @@ class TableController extends Controller
             'number' => 'required|unique:tables,number,' . $table->id,
             'status' => 'required|in:available,reserved,busy',
         ]);
-    
+
         $table->update($request->all());
         return new TableResource($table);
     }

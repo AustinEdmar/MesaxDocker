@@ -12,6 +12,6 @@ class Tables extends Model
 
     public function orders()
     {
-        return $this->hasMany(Orders::class);
+        return $this->hasMany(Orders::class, 'table_id');
     }
 }
