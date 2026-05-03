@@ -2,6 +2,7 @@
 import { useState, useRef } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import api from "@/lib/axios"
+import { AxiosError } from "axios"
 import { StatCard } from "@/components/dashboard/StatCard"
 
 // ── Types ──────────────────────────────────────────────────
@@ -84,7 +85,13 @@ function ImagePicker({
             >
                 {src ? (
                     <>
-                        <img src={src} alt="preview" className="w-full h-full object-cover" />
+                        <img
+                            src={src}
+                            width={300}
+                            height={200}
+                            alt="preview"
+                            className="w-full h-full object-cover"
+                        />
                         <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
                             <span className="text-white text-[12px] font-semibold">Alterar imagem</span>
                         </div>
@@ -192,7 +199,7 @@ function ProductFormModal({
     const createMutation = useMutation({
         mutationFn: createProduct,
         onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["products"] }); onClose() },
-        onError: (err: any) => {
+        onError: (err: AxiosError<{ message?: string }>) => {
             const msg = err?.response?.data?.message ?? "Erro ao criar produto"
             setErrors({ general: msg })
         },
@@ -201,7 +208,7 @@ function ProductFormModal({
     const updateMutation = useMutation({
         mutationFn: updateProduct,
         onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["products"] }); onClose() },
-        onError: (err: any) => {
+        onError: (err: AxiosError<{ message?: string }>) => {
             const msg = err?.response?.data?.message ?? "Erro ao actualizar produto"
             setErrors({ general: msg })
         },
@@ -418,7 +425,7 @@ function ProductDetailModal({
         },
     })
 
-    const stock = getStockStatus(product.stock)
+    //const stock = getStockStatus(product.stock)
 
     return (
         <div
@@ -648,8 +655,8 @@ export default function ProductsPage() {
                                     key={c}
                                     onClick={() => setCategoryFilter(c)}
                                     className={`text-[11.5px] font-medium px-3 py-[4px] rounded-full border transition-all cursor-pointer ${categoryFilter === c
-                                            ? "bg-[#1C1917] border-[#1C1917] text-white"
-                                            : "bg-white border-[#E7E5E4] text-[#9CA3AF] hover:border-[#D6D3D1]"
+                                        ? "bg-[#1C1917] border-[#1C1917] text-white"
+                                        : "bg-white border-[#E7E5E4] text-[#9CA3AF] hover:border-[#D6D3D1]"
                                         }`}
                                 >
                                     {c}

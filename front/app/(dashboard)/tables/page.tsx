@@ -2,6 +2,7 @@
 import { useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import api from "@/lib/axios"
+import { AxiosError } from "axios"
 import { StatCard } from "@/components/dashboard/StatCard"
 
 // ── Types ──────────────────────────────────────────────────
@@ -129,7 +130,7 @@ function TableFormModal({
             queryClient.invalidateQueries({ queryKey: ["tables"] })
             onClose()
         },
-        onError: (err: any) => {
+        onError: (err: AxiosError<{ message?: string }>) => {
             const msg = err?.response?.data?.message ?? "Erro ao criar mesa"
             setErrors({ number: msg })
         },
@@ -141,7 +142,7 @@ function TableFormModal({
             queryClient.invalidateQueries({ queryKey: ["tables"] })
             onClose()
         },
-        onError: (err: any) => {
+        onError: (err: AxiosError<{ message?: string }>) => {
             const msg = err?.response?.data?.message ?? "Erro ao atualizar mesa"
             setErrors({ number: msg })
         },
@@ -262,7 +263,7 @@ function TableDetailModal({
     table,
     onClose,
     onEdit,
-    onDelete,
+
 }: {
     table: Table
     onClose: () => void

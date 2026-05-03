@@ -1,3 +1,11 @@
+1. Conecta no VPS via SSH
+2. Dá git pull
+3. Roda docker compose up
+4. Roda php artisan migrate
+5. Limpa cache...
+mkdir -p /var/www/mesax
+cd /var/www/mesax
+
 https://www.heondokim.com/articles/laravel-websockets-nginx-docker
 
 
@@ -13,7 +21,7 @@ Para começar, certifique-se de ter o [Docker instalado](https://docs.docker.com
 Depois, navegue até o diretório clonado no seu terminal e inicie os containers do servidor web executando:
 
 ```sh
-docker-compose up -d --build app
+docker compose up -d --build app
 ```
 docker-compose run --rm  artisan config:publish cors 
 docker-compose run --rm composer create-project laravel/laravel .

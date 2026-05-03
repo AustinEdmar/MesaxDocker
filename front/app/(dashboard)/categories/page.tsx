@@ -2,6 +2,7 @@
 import { useState, useRef } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import api from "@/lib/axios"
+import { AxiosError } from "axios"
 import { StatCard } from "@/components/dashboard/StatCard"
 
 // ── Types ──────────────────────────────────────────────────
@@ -50,6 +51,8 @@ function CategoryCard({ category, onClick }: { category: Category; onClick: () =
                     <img
                         src={category.image_path}
                         alt={category.name}
+                        width={300}
+                        height={200}
                         className="w-full h-full object-cover"
                     />
                 ) : (
@@ -152,10 +155,10 @@ function CategoryFormModal({
             queryClient.invalidateQueries({ queryKey: ["categories"] })
             onClose()
         },
-        onError: (err: any) => {
-            const msg = err?.response?.data?.message ?? "Erro ao criar categoria"
+        onError: (err: AxiosError<{ message?: string }>) => {
+            const msg = err.response?.data?.message ?? "Erro ao criar categoria"
             setErrors({ name: msg })
-        },
+        }
     })
 
     const updateMutation = useMutation({
@@ -164,7 +167,7 @@ function CategoryFormModal({
             queryClient.invalidateQueries({ queryKey: ["categories"] })
             onClose()
         },
-        onError: (err: any) => {
+        onError: (err: AxiosError<{ message?: string }>) => {
             const msg = err?.response?.data?.message ?? "Erro ao atualizar categoria"
             setErrors({ name: msg })
         },
