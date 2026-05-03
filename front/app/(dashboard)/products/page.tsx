@@ -546,13 +546,15 @@ export default function ProductsPage() {
     const { data: products = [], isLoading } = useQuery({
         queryKey: ["products"],
         queryFn: fetchProducts,
-        staleTime: 5 * 60 * 1000,
+        staleTime: 30_000, // 30 segundos — considera fresco por pouco tempo
+        refetchOnWindowFocus: true, // actualiza ao voltar para a aba
     })
 
     const { data: categories = [] } = useQuery({
         queryKey: ["categories"],
         queryFn: fetchCategories,
-        staleTime: 10 * 60 * 1000,
+        staleTime: 30_000, // 30 segundos — considera fresco por pouco tempo
+        refetchOnWindowFocus: true, // actualiza ao voltar para a aba
     })
 
     // Derive unique category names from products
