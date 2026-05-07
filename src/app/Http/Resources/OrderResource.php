@@ -7,20 +7,58 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class OrderResource extends JsonResource
 {
-    /**
-     * Transform the resource into an array.
-     *
-     * @return array<string, mixed>
-     */
     public function toArray(Request $request): array
     {
         return [
             'id' => $this->id,
             'table_id' => $this->table_id,
             'user_id' => $this->user_id,
+            'shift_id' => $this->shift_id,
             'status' => $this->status,
+            'kitchen_status' => $this->kitchen_status,
             'subtotal' => $this->subtotal,
             'iva' => $this->iva,
+            'discount' => $this->discount,
+            'total' => $this->total,
+            'opened_at' => $this->opened_at,
+            'closed_at' => $this->closed_at,
+            'created_at' => $this->created_at,
+
+            // Mesa
+            'tables' => $this->whenLoaded('tables', fn() => [
+                'id' => $this->tables->id,
+                'number' => $this->tables->number,
+                'status' => $this->tables->status,
+            ]),
+
+            // Itens com produto e imagem resolvida
+            'items' => $this->whenLoaded(
+                'items',
+                fn() =>
+                $this->items->map(fn($item) => [
+                    'id' => $item->id,
+                    'order_id' => $item->order_id,
+                    'product_id' => $item->product_id,
+                    'quantity' => $item->quantity,
+                    'unit_price' => $item->unit_price,
+                    'iva_rate' => $item->iva_rate,
+                    'iva_amount' => $item->iva_amount,
+                    'subtotal' => $item->subtotal,
+                    'total_with_iva' => $item->total_with_iva,
+                    'product' => $item->product ? [
+                        'id' => $item->product->id,
+                        'name' => $item->product->name,
+                        'description' => $item->product->description,
+                        'price' => $item->product->price,
+                        'iva' => $item->product->iva,
+                        'stock' => $item->product->stock,
+                        // URL completa igual ao CategoryResource
+                        'image_path' => $item->product->image_path
+                            ? asset('storage/' . $item->product->image_path)
+                            : null,
+                    ] : null,
+                ])
+            ),
         ];
     }
 }

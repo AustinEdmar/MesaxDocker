@@ -1,10 +1,13 @@
 "use client"
+import { useAuthStore } from '@/stores/auth'
+
 
 interface HeaderProps {
   onMenuOpen: () => void
 }
 
 export function Header({ onMenuOpen }: HeaderProps) {
+  const { user, fetchUserData } = useAuthStore()
   return (
     <header className="h-[58px] min-h-[58px] bg-white border-b border-[#E7E5E4] flex items-center justify-between px-4 sm:px-6 gap-3">
 
@@ -70,7 +73,11 @@ export function Header({ onMenuOpen }: HeaderProps) {
 
         {/* Avatar */}
         <div className="w-[34px] h-[34px] rounded-full shrink-0 bg-gradient-to-br from-[#F97316] to-[#FB923C] flex items-center justify-center text-white font-bold text-[11px] cursor-pointer select-none">
-          AE
+          {user?.profile_photo ? (
+            <img src={`${process.env.NEXT_PUBLIC_API_IMAGE}/storage/${user.profile_photo}`} alt={user.name} className="w-full h-full object-cover rounded-full" />
+          ) : (
+            <span>{user?.name.charAt(0).toUpperCase()}</span>
+          )}
         </div>
       </div>
     </header>

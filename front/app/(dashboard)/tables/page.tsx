@@ -345,19 +345,21 @@ function TableDetailModal({
                 </div>
 
                 {/* Quick status change */}
-                <div className="px-5 pb-4">
+                <div className="px-5 pb-4" >
                     <p className="text-[11.5px] text-[#A8A29E] font-medium mb-2">Alterar status rapidamente:</p>
                     <div className="flex gap-2">
                         {(["available", "reserved", "busy"] as const)
                             .filter(s => s !== table.status)
                             .map(s => {
                                 const c = STATUS_CFG[s]
+                                const isBlocked = table.status !== "available"
                                 return (
                                     <button
                                         key={s}
-                                        onClick={() => updateMutation.mutate(s)}
-                                        disabled={updateMutation.isPending}
-                                        className={`flex-1 flex items-center justify-center gap-1.5 text-[11.5px] font-semibold px-3 py-[7px] rounded-[8px] border transition-all cursor-pointer disabled:opacity-50 ${c.badge}`}
+                                        onClick={() => !isBlocked && updateMutation.mutate(s)}
+                                        disabled={updateMutation.isPending || isBlocked}
+                                        title={isBlocked ? "Apenas mesas disponíveis podem ter o status alterado" : ""}
+                                        className={`flex-1 flex items-center justify-center gap-1.5 text-[11.5px] font-semibold px-3 py-[7px] rounded-[8px] border transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${c.badge}`}
                                     >
                                         <span className={`w-[6px] h-[6px] rounded-full ${c.dot}`} />
                                         {c.label}
@@ -371,6 +373,7 @@ function TableDetailModal({
                 <div className="px-5 pb-5 flex gap-2 border-t border-[#F5F4F0] pt-4">
                     <button
                         onClick={onEdit}
+                        disabled={table.status !== "available"}
                         className="flex-1 flex items-center justify-center gap-2 text-[13px] font-semibold px-4 py-[9px] rounded-[9px] bg-[#F97316] text-white shadow-[0_2px_8px_rgba(249,115,22,0.3)] hover:bg-[#EA6C0A] transition-colors border-none cursor-pointer"
                     >
                         <svg width="14" height="14" fill="none" stroke="white" strokeWidth="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
@@ -378,7 +381,7 @@ function TableDetailModal({
                     </button>
                     <button
                         onClick={() => deleteMutation.mutate()}
-                        disabled={deleteMutation.isPending}
+                        disabled={deleteMutation.isPending || table.status !== "available"}
                         className="flex items-center gap-2 text-[13px] font-semibold px-4 py-[9px] rounded-[9px] bg-[#FEF2F2] text-[#EF4444] border border-[#FECACA] hover:bg-[#FEE2E2] disabled:opacity-50 transition-colors cursor-pointer"
                     >
                         {deleteMutation.isPending ? (
@@ -586,6 +589,7 @@ export default function TablesPage() {
                                                 <div className="flex gap-2" onClick={e => e.stopPropagation()}>
                                                     <button
                                                         onClick={() => { setEditingTable(table) }}
+                                                        disabled={table.status !== "available"}
                                                         className="w-7 h-7 flex items-center justify-center rounded-[6px] bg-transparent border border-[#E7E5E4] text-[#78716C] hover:bg-[#FFF4ED] hover:border-[#FED7AA] hover:text-[#F97316] transition-all cursor-pointer"
                                                     >
                                                         <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>

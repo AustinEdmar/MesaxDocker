@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Resources\OrderResource;
 use Illuminate\Http\Request;
 use App\Models\Orders;
 use App\Http\Controllers\Controller;
@@ -13,6 +14,7 @@ use App\Models\Tables;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
+
 class OrderController extends Controller
 {
     /**
@@ -22,7 +24,7 @@ class OrderController extends Controller
     {
 
         $request->validate([
-            'table_id' => 'required|exists:tables,number'
+            'table_id' => 'required|exists:tables,id'
         ]);
 
 
@@ -45,7 +47,7 @@ class OrderController extends Controller
 
 
 
-        $table = Tables::where('number', $request->table_id)
+        $table = Tables::where('id', $request->table_id)
             ->first();
 
 
@@ -85,9 +87,10 @@ class OrderController extends Controller
     {
 
         $user = Auth::user();
-        $orders = Orders::get();
+        $orders = Orders::with('items.product', 'tables')->get();
 
-        return response()->json($orders);
+        return OrderResource::collection($orders);
+
     }
 
     /**
@@ -303,7 +306,7 @@ class OrderController extends Controller
     {
         $request->validate([
             'payment_method' => 'required|in:cash,card,QrCode',
-            'table_id' => 'required|exists:tables,number',
+            'table_id' => 'required|exists:tables,id',
             'received' => 'nullable|numeric',
             'change' => 'nullable|numeric'
 
@@ -312,7 +315,7 @@ class OrderController extends Controller
         /* $order = Orders::where('id', $orderId)
             ->where('status', 'open')
             ->firstOrFail(); */
-        $table = Tables::where('number', $request->table_id)
+        $table = Tables::where('id', $request->table_id)
             ->first();
 
 

@@ -3,6 +3,7 @@ import Link from "next/link"
 import { useRouter, usePathname } from "next/navigation"
 import { useState } from "react"
 import { useAuthStore } from "@/stores/auth"
+
 import { clearSessionTimeout } from "@/lib/axios"
 import Image from "next/image"
 
@@ -120,6 +121,7 @@ export function Sidebar({ onClose }: SidebarProps) {
   const router = useRouter()
   const pathname = usePathname()
   const [isLoading, setIsLoading] = useState(false)
+  const { user, isAuthenticated, fetchUserData, updateUser, error } = useAuthStore()
   const [open, setOpen] = useState(true)
   const { logout } = useAuthStore()
 
@@ -247,16 +249,37 @@ export function Sidebar({ onClose }: SidebarProps) {
       </nav>
 
       {/* ── User ── */}
-      <div className="border-t border-[#292524] p-[10px]">
+      <div className="border-t border-[#292524] p-[10px] cursor-pointer">
         {open ? (
           <div className="flex items-center gap-[10px]">
-            <div className="w-[34px] h-[34px] rounded-full shrink-0 bg-gradient-to-br from-[#F97316] to-[#FB923C] flex items-center justify-center text-white font-bold text-[11px]">
-              TA
-            </div>
-            <div className="flex-1 overflow-hidden">
-              <div className="text-[13px] font-semibold text-[#E7E5E4]">Taretan Aditya</div>
-              <div className="text-[11px] text-[#78716C]">Administrador</div>
-            </div>
+
+            <Link
+              href="/profile"
+              className="flex items-center gap-[10px] flex-1 overflow-hidden no-underline"
+            >
+              <div className="w-[34px] h-[34px] rounded-full shrink-0 bg-gradient-to-br from-[#F97316] to-[#FB923C] flex items-center justify-center text-white font-bold text-[11px]">
+                {user?.name.substring(0, 2).toUpperCase()}
+              </div>
+
+              <div className="flex-1 overflow-hidden">
+                <div className="text-[13px] font-semibold text-[#E7E5E4]">
+                  {user?.name}
+                </div>
+
+                <div className="text-[11px] text-[#78716C]">
+                  {user?.access_level === 2
+                    ? "Gerente"
+                    : user?.access_level === 1
+                      ? "Supervisor"
+                      : user?.access_level === 0
+                        ? "Funcionário"
+                        : user?.access_level === -1
+                          ? "Desativado"
+                          : "Funcionário"}
+                </div>
+              </div>
+            </Link>
+
             <button
               onClick={handleLogout}
               disabled={isLoading}

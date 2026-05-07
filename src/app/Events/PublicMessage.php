@@ -20,10 +20,10 @@ class PublicMessage implements ShouldBroadcast
     /**
      * Create a new event instance.
      */
-    public function __construct(string $user, string $message)
+    public function __construct(string $user, ?string $message)
     {
         $this->user = $user;
-        $this->message = $message;
+        $this->message = $message ?? '';
     }
 
     /**

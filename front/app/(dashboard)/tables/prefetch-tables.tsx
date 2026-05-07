@@ -13,17 +13,17 @@ export async function fetchTables() {
 
 export default function PrefetchTables() {
   const queryClient = useQueryClient()
-    
+
   useEffect(() => {
     // Prefetch as tabelas assim que o componente montar
     queryClient.prefetchQuery({
       queryKey: ['tables'],
       queryFn: fetchTables,
-      staleTime: 5 * 60 * 1000, // 5 minutos
-     // staleTime: Infinity, // 5 minutos
+      staleTime: 5_000, // 30 segundos — considera fresco por pouco tempo
+      //refetchOnWindowFocus: true, // actualiza ao voltar para a aba 
     })
   }, [queryClient])
-  
+
   // Este componente não renderiza nada visível
   return null
 }

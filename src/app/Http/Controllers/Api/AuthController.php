@@ -20,6 +20,14 @@ use Illuminate\Validation\ValidationException;
 class AuthController extends Controller
 {
 
+
+    public function index()
+    {
+
+        $users = User::with('orders.shift')->get();
+        return UserResource::collection($users);
+    }
+
     public function register(Request $request)
     {
         // Validação dos dados de entrada
@@ -30,7 +38,7 @@ class AuthController extends Controller
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
         ]);
-    
+
         try {
             // Criação do usuário
             $user = User::create([
@@ -41,9 +49,9 @@ class AuthController extends Controller
                 'password' => Hash::make($request->password),
                 'access_level' => 0, // Padrão para usuário regular
             ]);
-    
+
             $token = $user->createToken('auth_token')->plainTextToken;
-    
+
             return new AuthResource([
                 'access_token' => $token,
                 'user' => $user,
@@ -56,31 +64,31 @@ class AuthController extends Controller
             ], 409); // 409 Conflict
         }
     }
-    
+
 
     public function login(Request $request)
-{
-    $request->validate([
-        'email' => 'required|email',
-        'password' => 'required|min:6',
-    ]);
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'password' => 'required|min:6',
+        ]);
 
-    if (!Auth::attempt($request->only('email', 'password'))) {
+        if (!Auth::attempt($request->only('email', 'password'))) {
+            return response()->json([
+                'message' => 'Credenciais incorretas'
+            ], 401);
+        }
+
+        $user = User::where('email', $request->email)->first();
+
+        $token = $user->createToken('auth_token')->plainTextToken;
+
         return response()->json([
-            'message' => 'Credenciais incorretas'
-        ], 401);
+            'access_token' => $token,
+            'token_type' => 'Bearer',
+            'user' => $user,
+        ]);
     }
-
-    $user = User::where('email', $request->email)->first();
-
-    $token = $user->createToken('auth_token')->plainTextToken;
-
-    return response()->json([
-        'access_token' => $token,
-        'token_type' => 'Bearer',
-        'user' => $user,
-    ]);
-}
 
 
     public function logout(Request $request)
@@ -93,27 +101,27 @@ class AuthController extends Controller
     {
 
         $user = User::where('email', $request->user()->email)->first();
-         return response()->json([
-        'user' => $user,
-         ]);
-         
+        return response()->json([
+            'user' => $user,
+        ]);
+
         //return new UserResource($request->user());
     }
 
     public function forgotPassword(Request $request)
-{
-    $request->validate([
-        'email' => 'required|email|exists:users,email', // valida se existe o email
-    ]);
+    {
+        $request->validate([
+            'email' => 'required|email|exists:users,email', // valida se existe o email
+        ]);
 
-    $status = Password::sendResetLink(
-        $request->only('email')
-    );
+        $status = Password::sendResetLink(
+            $request->only('email')
+        );
 
-    return $status === Password::RESET_LINK_SENT
-        ? response()->json(['message' => 'Reset link sent to your email'])
-        : response()->json(['message' => 'Unable to send reset link'], 400);
-}
+        return $status === Password::RESET_LINK_SENT
+            ? response()->json(['message' => 'Reset link sent to your email'])
+            : response()->json(['message' => 'Unable to send reset link'], 400);
+    }
 
     public function resetPassword(Request $request)
     {
@@ -141,53 +149,50 @@ class AuthController extends Controller
             : response()->json(['message' => 'Unable to reset password'], 400);
     }
 
-   
 
-    public function index()
+
+
+
+
+
+    public function update(Request $request, User $user)
     {
-        return UserResource::collection(User::all());
-    }
+        try {
+            $validated = $request->validate([
+                'name' => 'sometimes|required|string|max:255',
+                'email' => 'sometimes|required|string|email|max:255|unique:users,email,' . $user->id,
+                'access_level' => 'sometimes|required|integer|in:0,1',
+                'profile_photo' => 'sometimes|file|image|mimes:jpeg,png,jpg,gif,webp|max:6048',
+            ]);
+        } catch (ValidationException $e) {
+            // Checa se o erro é de tamanho da imagem
+            $errors = $e->validator->errors();
+            if ($errors->has('profile_photo') && str_contains($errors->first('profile_photo'), 'may not be greater than')) {
+                return response()->json([
+                    'message' => 'A imagem não pode ter mais que 2MB.',
+                    'errors' => $errors,
+                ], 422);
+            }
 
-
-
-public function update(Request $request, User $user)
-{
-    try {
-        $validated = $request->validate([
-            'name' => 'sometimes|required|string|max:255',
-            'email' => 'sometimes|required|string|email|max:255|unique:users,email,' . $user->id,
-            'access_level' => 'sometimes|required|integer|in:0,1',
-            'profile_photo' => 'sometimes|file|image|mimes:jpeg,png,jpg,gif,webp|max:6048',
-        ]);
-    } catch (ValidationException $e) {
-        // Checa se o erro é de tamanho da imagem
-        $errors = $e->validator->errors();
-        if ($errors->has('profile_photo') && str_contains($errors->first('profile_photo'), 'may not be greater than')) {
-            return response()->json([
-                'message' => 'A imagem não pode ter mais que 2MB.',
-                'errors' => $errors,
-            ], 422);
+            // Retorna os outros erros normalmente
+            throw $e;
         }
 
-        // Retorna os outros erros normalmente
-        throw $e;
-    }
+        // Atualiza dados exceto a imagem
+        $user->update(Arr::except($validated, ['profile_photo']));
 
-    // Atualiza dados exceto a imagem
-    $user->update(Arr::except($validated, ['profile_photo']));
+        if ($request->hasFile('profile_photo')) {
+            if ($user->profile_photo) {
+                Storage::disk('public')->delete($user->profile_photo);
+            }
 
-    if ($request->hasFile('profile_photo')) {
-        if ($user->profile_photo) {
-            Storage::disk('public')->delete($user->profile_photo);
+            $photoPath = $request->file('profile_photo')->store('profile-photos', 'public');
+            $user->profile_photo = $photoPath;
+            $user->save();
         }
 
-        $photoPath = $request->file('profile_photo')->store('profile-photos', 'public');
-        $user->profile_photo = $photoPath;
-        $user->save();
+        return new UserResource($user);
     }
-
-    return new UserResource($user);
-}
 
 
 }

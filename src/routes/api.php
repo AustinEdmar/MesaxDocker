@@ -1,5 +1,6 @@
 <?php
 
+use App\Events\PublicMessage;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\TableController;
 use App\Http\Controllers\Api\ShiftsController;
@@ -8,9 +9,26 @@ use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\CategoryController;
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Http\Request;
+
 
 Route::get('/teste', function () {
     return 'teste';
+});
+
+// Rota para enviar mensagens
+Route::post('/send-message', function (Request $request) {
+    $validated = $request->validate([
+        'user' => 'sometimes|string|max:255',
+        'message' => 'required|string|max:1000',
+    ]);
+
+    $user = $validated['user'] ?? 'Usuário Anônimo';
+    $message = $validated['message'];
+
+    event(new PublicMessage($user, $message));
+
+    return response()->json(['status' => 'Mensagem enviada']);
 });
 
 // Auth (público)

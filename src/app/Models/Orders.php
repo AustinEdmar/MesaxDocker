@@ -9,21 +9,21 @@ class Orders extends Model
 {
     use HasFactory;
     protected $fillable = [
-    'table_id',
-    'user_id',
-    'shift_id',
-    'status',
-    'subtotal',
-    'iva',
-    'discount',
-    'total',
-    'opened_at',
-    'closed_at'
-];
+        'table_id',
+        'user_id',
+        'shift_id',
+        'status',
+        'subtotal',
+        'iva',
+        'discount',
+        'total',
+        'opened_at',
+        'closed_at'
+    ];
 
     public function tables()
     {
-        return $this->belongsTo(Tables::class);
+        return $this->belongsTo(Tables::class, 'table_id');
     }
 
     public function user()
@@ -39,7 +39,7 @@ class Orders extends Model
 
 
     public function items()
-{
-    return $this->hasMany(OrderItem::class, 'order_id');
-}
+    {
+        return $this->hasMany(OrderItem::class, 'order_id');
+    }
 }

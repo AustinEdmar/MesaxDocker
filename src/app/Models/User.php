@@ -19,13 +19,13 @@ class User extends Authenticatable
      * @var array<int, string>
      */
     protected $guarded = [];
-   /*  protected $fillable = [
-        'name',
-        'email',
-        'password',
-        'profile_photo',
-        'access_level',
-    ]; */
+    /*  protected $fillable = [
+         'name',
+         'email',
+         'password',
+         'profile_photo',
+         'access_level',
+     ]; */
 
     /**
      * The attributes that should be hidden for serialization.
@@ -51,16 +51,22 @@ class User extends Authenticatable
         ];
     }
 
+
+    public function orders()
+    {
+        return $this->hasMany(Orders::class);
+    }
+
     public function isAdmin()
     {
         return $this->access_level === 1;
     }
 
     public function sendPasswordResetNotification($token)
-{
-    $this->notify(new ResetPasswordNotification($token));
+    {
+        $this->notify(new ResetPasswordNotification($token));
 
-}
+    }
 
 
 }
