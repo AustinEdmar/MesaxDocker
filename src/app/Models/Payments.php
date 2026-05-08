@@ -15,10 +15,10 @@ class Payments extends Model
         'amount',
         'paid_at',
         'received',
-        'change'
+        'change',
+        'status',
+        'user_id'
     ];
-
-
 
     public function order()
     {
@@ -29,4 +29,17 @@ class Payments extends Model
     {
         return $this->belongsTo(Shifts::class);
     }
+
+    // ✅ payment tem vários refunds
+    public function refunds()
+    {
+        return $this->hasMany(Refunds::class, 'payment_id');
+    }
+
+    // ✅ payment tem um único user ( quem recebeu)
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
 }

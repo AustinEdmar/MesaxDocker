@@ -121,7 +121,7 @@ export function Sidebar({ onClose }: SidebarProps) {
   const router = useRouter()
   const pathname = usePathname()
   const [isLoading, setIsLoading] = useState(false)
-  const { user, isAuthenticated, fetchUserData, updateUser, error } = useAuthStore()
+  const { user } = useAuthStore()
   const [open, setOpen] = useState(true)
   const { logout } = useAuthStore()
 
@@ -258,7 +258,9 @@ export function Sidebar({ onClose }: SidebarProps) {
               className="flex items-center gap-[10px] flex-1 overflow-hidden no-underline"
             >
               <div className="w-[34px] h-[34px] rounded-full shrink-0 bg-gradient-to-br from-[#F97316] to-[#FB923C] flex items-center justify-center text-white font-bold text-[11px]">
-                {user?.name.substring(0, 2).toUpperCase()}
+
+                <img src={`${process.env.NEXT_PUBLIC_API_IMAGE}/storage/${user?.profile_photo}`} alt={user?.name} className="w-full h-full object-cover rounded-full" />
+
               </div>
 
               <div className="flex-1 overflow-hidden">

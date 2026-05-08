@@ -42,4 +42,14 @@ class Orders extends Model
     {
         return $this->hasMany(OrderItem::class, 'order_id');
     }
+
+    public function payments()
+    {
+        return $this->hasMany(Payments::class, 'order_id');
+    }
+
+    public function refunds()
+    {
+        return $this->hasMany(Refunds::class, 'order_id');
+    }
 }

@@ -16,6 +16,7 @@ return new class extends Migration {
             $table->foreignId('shift_id')->constrained()->cascadeOnDelete();
             $table->decimal('received', 10, 2)->nullable();
             $table->decimal('change', 10, 2)->nullable();
+            $table->enum('status', ['pending', 'paid', 'refunded', 'partial_refund'])->default('pending');
             $table->enum('method', ['cash', 'card', 'QrCode', 'BankTransfer']);
             $table->decimal('amount', 10, 2);
             $table->timestamp('paid_at')->useCurrent();

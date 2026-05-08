@@ -16,6 +16,7 @@ return new class extends Migration {
             $table->foreignId('product_id')->constrained()->onDelete('cascade');
             $table->integer('quantity');
             $table->decimal('unit_price', 10, 2);
+            $table->enum('status', ['active', 'cancelled', 'refunded'])->default('active');
             $table->unsignedTinyInteger('iva_rate'); // 👈 IVA snapshot
             $table->decimal('iva_amount', 10, 2)->default(0);      // 👈 valor do IVA
             $table->decimal('subtotal', 10, 2);                    // sem IVA

@@ -39,7 +39,7 @@ interface Order {
   table_id: number
   user_id: number
   shift_id: number
-  status: "open" | "closed" | "canceled"
+  status: "open" | "closed" | "canceled" | "refunded" | "partial_refund"
   kitchen_status: "pending" | "preparing" | "ready" | "delivered" | null
   iva: string
   subtotal: string
@@ -51,7 +51,13 @@ interface Order {
   tables: OrderTable
 }
 
-type FilterStatus = "todos" | "open" | "closed" | "canceled"
+type FilterStatus =
+  | "todos"
+  | "open"
+  | "closed"
+  | "canceled"
+  | "refunded"
+  | "partial_refund"
 
 // ── API ────────────────────────────────────────────────────
 async function fetchOrders(): Promise<Order[]> {
@@ -71,10 +77,52 @@ async function updateOrderStatus(id: number, status: string): Promise<Order> {
 }
 
 // ── Status configs ─────────────────────────────────────────
+// const ORDER_STATUS_CFG = {
+//   open: { label: "Aberto", bg: "#FFF7ED", text: "#F97316", border: "#FED7AA", dot: "bg-[#F97316]" },
+//   closed: { label: "Fechado", bg: "#41dd9cff", text: "#0f291dff", border: "#dcedcdff", dot: "bg-[#dcedcdff]" },
+//   canceled: { label: "Cancelado", bg: "#FEF2F2", text: "#EF4444", border: "#FECACA", dot: "bg-[#EF4444]" },
+// }
+
 const ORDER_STATUS_CFG = {
-  open: { label: "Aberto", bg: "#FFF7ED", text: "#F97316", border: "#FED7AA", dot: "bg-[#F97316]" },
-  closed: { label: "Fechado", bg: "#41dd9cff", text: "#0f291dff", border: "#dcedcdff", dot: "bg-[#dcedcdff]" },
-  canceled: { label: "Cancelado", bg: "#FEF2F2", text: "#EF4444", border: "#FECACA", dot: "bg-[#EF4444]" },
+  open: {
+    label: "Aberto",
+    bg: "#FFF7ED",
+    text: "#F97316",
+    border: "#FED7AA",
+    dot: "bg-[#F97316]",
+  },
+
+  closed: {
+    label: "Fechado",
+    bg: "#DCFCE7",
+    text: "#166534",
+    border: "#BBF7D0",
+    dot: "bg-[#22C55E]",
+  },
+
+  canceled: {
+    label: "Cancelado",
+    bg: "#FEF2F2",
+    text: "#EF4444",
+    border: "#FECACA",
+    dot: "bg-[#EF4444]",
+  },
+
+  refunded: {
+    label: "Reembolsado",
+    bg: "#EEF2FF",
+    text: "#4F46E5",
+    border: "#C7D2FE",
+    dot: "bg-[#4F46E5]",
+  },
+
+  partial_refund: {
+    label: "Reembolso Parcial",
+    bg: "#FEFCE8",
+    text: "#CA8A04",
+    border: "#FDE68A",
+    dot: "bg-[#EAB308]",
+  },
 }
 
 const KITCHEN_STATUS_CFG = {
@@ -345,9 +393,22 @@ export default function OrdersPage() {
   const filtered = filter === "todos" ? safeOrders : safeOrders.filter(o => o.status === filter)
 
   const total = safeOrders.length
-  const open = safeOrders.filter(o => o.status === "open").length
-  const preparing = safeOrders.filter(o => o.status === "closed").length
-  const ready = safeOrders.filter(o => o.status === "canceled").length
+  // const open = safeOrders.filter(o => o.status === "open").length
+  // const preparing = safeOrders.filter(o => o.status === "closed").length
+  // const ready = safeOrders.filter(o => o.status === "canceled").length
+  const openCount = safeOrders.filter(o => o.status === "open").length
+
+  const closedCount = safeOrders.filter(o => o.status === "closed").length
+
+  const canceledCount = safeOrders.filter(o => o.status === "canceled").length
+
+  const refundedCount = safeOrders.filter(
+    o => o.status === "refunded"
+  ).length
+
+  const partialRefundCount = safeOrders.filter(
+    o => o.status === "partial_refund"
+  ).length
 
   const STATS = [
     {
@@ -357,17 +418,17 @@ export default function OrdersPage() {
       iconColor: "#10B981", iconBg: "#ECFDF5",
     },
     {
-      label: "Abertos", value: String(open), change: "", up: true,
+      label: "Abertos", value: String(openCount), change: "", up: true,
       icon: <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>,
       iconColor: "#3B82F6", iconBg: "#EFF6FF",
     },
     {
-      label: "Pagos", value: String(preparing), change: "", up: true,
+      label: "Pagos", value: String(closedCount), change: "", up: true,
       icon: <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zM12 6v6l4 2" /></svg>,
       iconColor: "#8B5CF6", iconBg: "#F3EEFF",
     },
     {
-      label: "Cancelados", value: String(ready), change: "", up: true,
+      label: "Cancelados", value: String(canceledCount), change: "", up: true,
       icon: <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>,
       iconColor: "#F97316", iconBg: "#FFF4ED",
     },
@@ -401,6 +462,8 @@ export default function OrdersPage() {
               { key: "open", label: "Abertos" },
               { key: "closed", label: "Fechados" },
               { key: "canceled", label: "Cancelados" },
+              { key: "refunded", label: "Reembolsados" },
+              { key: "partial_refund", label: "Reembolso Parcial" },
             ] as const).map(f => (
               <button
                 key={f.key}

@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Resources\OrderResource;
+use App\Http\Resources\SalesResource;
+use App\Models\Refunds;
 use Illuminate\Http\Request;
 use App\Models\Orders;
 use App\Http\Controllers\Controller;
@@ -90,6 +92,18 @@ class OrderController extends Controller
         $orders = Orders::with('items.product', 'tables')->get();
 
         return OrderResource::collection($orders);
+
+    }
+
+
+
+    public function getSales()
+    {
+
+
+        $orders = Orders::with('items.product', 'tables', 'payments', 'shift', 'refunds', 'user')->get();
+
+        return SalesResource::collection($orders);
 
     }
 
@@ -347,6 +361,15 @@ class OrderController extends Controller
                 'amount' => $order->total,
                 'received' => $request->received,
                 'change' => $request->change
+
+
+                /*  'order_id' => $order->id,
+            'shift_id' => $shift->id,
+    'method' => $request->payment_method,
+    'amount' => $order->total,
+    'received' => $request->received,
+    'change' => $request->change,
+    'status' => 'paid' */
             ]);
 
             // Atualizar pedido
@@ -371,4 +394,164 @@ class OrderController extends Controller
             return response()->json(['error' => 'Erro ao fechar mesa'], 500);
         }
     }
+
+
+    public function refund(Request $request, $orderId)
+    {
+        $request->validate([
+            'reason' => 'nullable|string'
+        ]);
+
+        DB::beginTransaction();
+
+        try {
+
+            $order = Orders::with('items')
+                ->lockForUpdate()
+                ->findOrFail($orderId);
+
+            if ($order->status !== 'closed') {
+                return response()->json([
+                    'message' => 'Pedido não está fechado.'
+                ], 400);
+            }
+
+            $payment = Payments::where('order_id', $order->id)
+                ->first();
+
+            Refunds::create([
+                'order_id' => $order->id,
+                'payment_id' => $payment->id,
+                'amount' => $order->total,
+                'user_id' => Auth::id(),
+                'type' => 'full',
+                'reason' => $request->reason
+            ]);
+
+            foreach ($order->items as $item) {
+
+                Product::where('id', $item->product_id)
+                    ->increment('stock', $item->quantity);
+            }
+
+            $payment->update([
+                'status' => 'refunded'
+            ]);
+
+            $order->update([
+                'status' => 'refunded'
+            ]);
+
+            Tables::where('id', $order->table_id)
+                ->update([
+                    'status' => 'available'
+                ]);
+
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Reembolso realizado.'
+            ]);
+
+        } catch (\Exception $e) {
+
+            DB::rollBack();
+
+            return response()->json([
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+
+    public function refundItem(Request $request, $itemId)
+    {
+        $request->validate([
+            'quantity' => 'required|integer|min:1',
+            'reason' => 'nullable|string'
+        ]);
+
+        DB::beginTransaction();
+
+        try {
+            $item = OrderItem::with('order')
+                ->lockForUpdate()
+                ->findOrFail($itemId);
+
+            $order = $item->order;
+
+            if ($order->status !== 'closed' && $order->status !== 'partial_refund') {
+                return response()->json(['message' => 'Pedido não fechado'], 400);
+            }
+
+            if ($request->quantity > $item->quantity) {
+                return response()->json(['message' => 'Quantidade inválida'], 400);
+            }
+
+            $product = Product::lockForUpdate()->findOrFail($item->product_id);
+            $product->increment('stock', $request->quantity);
+
+            $refundAmount = ($item->total_with_iva / $item->quantity) * $request->quantity;
+
+            if ($request->quantity == $item->quantity) {
+                $item->update([
+                    'status' => 'refunded',
+                    'subtotal' => 0,        // ✅ zera para o recálculo ser correto
+                    'iva_amount' => 0,
+                    'total_with_iva' => 0,
+                ]);
+            } else {
+                $newQty = $item->quantity - $request->quantity;
+                $subtotal = $newQty * $item->unit_price;
+                $ivaAmount = $subtotal * ($item->iva_rate / 100);
+
+                $item->update([
+                    'quantity' => $newQty,
+                    'subtotal' => $subtotal,
+                    'iva_amount' => $ivaAmount,
+                    'total_with_iva' => $subtotal + $ivaAmount,
+                ]);
+            }
+
+            // ✅ busca payment corretamente
+            $payment = Payments::where('order_id', $order->id)->firstOrFail();
+
+            Refunds::create([
+                'order_id' => $order->id,
+                'payment_id' => $payment->id,
+                'user_id' => Auth::id(),
+                'amount' => $refundAmount,
+                'type' => 'partial',
+                'reason' => $request->reason,
+            ]);
+
+            $subtotal = $order->items()->where('status', 'active')->sum('subtotal');
+            $iva = $order->items()->where('status', 'active')->sum('iva_amount');
+
+            // ✅ detecta se tudo foi reembolsado
+            $allRefunded = $order->items()->where('status', 'active')->doesntExist();
+
+            $order->update([
+                'subtotal' => $subtotal,
+                'iva' => $iva,
+                'total' => $subtotal + $iva,
+                'status' => $allRefunded ? 'refunded' : 'partial_refund',
+            ]);
+
+            DB::commit();
+
+            return response()->json(['message' => 'Artigo reembolsado']);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+
 }
+
+
+
+
+

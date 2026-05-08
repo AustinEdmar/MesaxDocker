@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Models\Refunds;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -101,13 +102,41 @@ class ShiftsController extends Controller
 
             // 8️⃣ Soma todos os pagamentos em dinheiro feitos nesse turno
             // Aqui estamos considerando apenas pagamentos com método "cash".
+
+
+
+
+
+            // =========================
+// TOTAL VENDAS EM DINHEIRO
+// =========================
             $cashSales = Payments::where('shift_id', $shift->id)
-                // ->where('method', 'cash')
+                ->where('method', 'cash')
+                ->whereIn('status', ['paid', 'partial_refund'])
                 ->sum('amount');
 
+
+            // =========================
+// TOTAL REEMBOLSOS CASH
+// =========================
+            $cashRefunds = Refunds::whereHas('payment', function ($q) use ($shift) {
+
+                $q->where('shift_id', $shift->id)
+                    ->where('method', 'cash');
+
+            })->sum('amount');
+
+
+            // =========================
+// VALOR ESPERADO NO CAIXA
+// =========================
+            $expected =
+                $shift->initial_amount +
+                $cashSales -
+                $cashRefunds;
             // 9️⃣ Calcula quanto deveria existir no caixa
             // Fundo inicial + vendas em dinheiro. 
-            $expected = $shift->initial_amount + $cashSales;
+            //$expected = $shift->initial_amount + $cashSales;
 
             // 🔟 Calcula a diferença entre o dinheiro contado e o esperado
             // Pode dar positivo (sobra) ou negativo (falta).
@@ -236,7 +265,6 @@ class ShiftsController extends Controller
 
         return ShiftResource::make($shift);
     }
-
 
 
 }

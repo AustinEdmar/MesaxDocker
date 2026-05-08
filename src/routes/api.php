@@ -81,6 +81,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/orders/item/{id}', [OrderController::class, 'removeItem']);
     Route::post('/orders/{id}/close', [OrderController::class, 'close']);
 
+    Route::post('/orders/{id}/refund', [OrderController::class, 'refund']);
+    Route::post('/items/{itemId}/refund', [OrderController::class, 'refundItem']);
+
+    Route::get('/orders/sales', [OrderController::class, 'getSales']);
+
     // Admin
     Route::middleware('access.level:1')->group(function () {
         Route::get('/admin/users', [AuthController::class, 'listUsers']);
