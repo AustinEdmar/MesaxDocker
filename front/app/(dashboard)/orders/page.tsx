@@ -1,6 +1,5 @@
 "use client"
-import { useState } from "react"
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { useState, useEffect, useCallback } from "react"
 import api from "@/lib/axios"
 import { StatCard } from "@/components/dashboard/StatCard"
 
@@ -62,7 +61,6 @@ type FilterStatus =
 // ── API ────────────────────────────────────────────────────
 async function fetchOrders(): Promise<Order[]> {
   const res = await api.get("/orders")
-  // handles both [] and { data: [] } response shapes
   return Array.isArray(res.data) ? res.data : res.data.data ?? []
 }
 
@@ -77,12 +75,6 @@ async function updateOrderStatus(id: number, status: string): Promise<Order> {
 }
 
 // ── Status configs ─────────────────────────────────────────
-// const ORDER_STATUS_CFG = {
-//   open: { label: "Aberto", bg: "#FFF7ED", text: "#F97316", border: "#FED7AA", dot: "bg-[#F97316]" },
-//   closed: { label: "Fechado", bg: "#41dd9cff", text: "#0f291dff", border: "#dcedcdff", dot: "bg-[#dcedcdff]" },
-//   canceled: { label: "Cancelado", bg: "#FEF2F2", text: "#EF4444", border: "#FECACA", dot: "bg-[#EF4444]" },
-// }
-
 const ORDER_STATUS_CFG = {
   open: {
     label: "Aberto",
@@ -91,7 +83,6 @@ const ORDER_STATUS_CFG = {
     border: "#FED7AA",
     dot: "bg-[#F97316]",
   },
-
   closed: {
     label: "Fechado",
     bg: "#DCFCE7",
@@ -99,7 +90,6 @@ const ORDER_STATUS_CFG = {
     border: "#BBF7D0",
     dot: "bg-[#22C55E]",
   },
-
   canceled: {
     label: "Cancelado",
     bg: "#FEF2F2",
@@ -107,7 +97,6 @@ const ORDER_STATUS_CFG = {
     border: "#FECACA",
     dot: "bg-[#EF4444]",
   },
-
   refunded: {
     label: "Reembolsado",
     bg: "#EEF2FF",
@@ -115,7 +104,6 @@ const ORDER_STATUS_CFG = {
     border: "#C7D2FE",
     dot: "bg-[#4F46E5]",
   },
-
   partial_refund: {
     label: "Reembolso Parcial",
     bg: "#FEFCE8",
@@ -249,20 +237,16 @@ function OrderCard({ order, onClick }: { order: Order; onClick: () => void }) {
 }
 
 // ── Order Detail Modal ─────────────────────────────────────
-function OrderDetailModal({ order, onClose }: { order: Order; onClose: () => void }) {
-  const queryClient = useQueryClient()
-
-  const kitchenMutation = useMutation({
-    mutationFn: (kitchen_status: string) => updateKitchenStatus(order.id, kitchen_status),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["orders"] }); onClose() },
-  })
-
-  const statusMutation = useMutation({
-    mutationFn: (status: string) => updateOrderStatus(order.id, status),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["orders"] }); onClose() },
-  })
-
-  const isPending = kitchenMutation.isPending || statusMutation.isPending
+function OrderDetailModal({
+  order,
+  onClose,
+  onRefresh,
+}: {
+  order: Order
+  onClose: () => void
+  onRefresh: () => void
+}) {
+  const [isPending, setIsPending] = useState(false)
 
   const kitchenFlow: Record<string, { next: string; label: string; cls: string }> = {
     "null": { next: "pending", label: "Enviar p/ Cozinha", cls: "bg-[#F97316] hover:bg-[#EA6C0A] text-white" },
@@ -273,6 +257,28 @@ function OrderDetailModal({ order, onClose }: { order: Order; onClose: () => voi
 
   const currentKitchen = order.kitchen_status ?? "null"
   const nextAction = kitchenFlow[currentKitchen]
+
+  async function handleKitchenUpdate(next: string) {
+    setIsPending(true)
+    try {
+      await updateKitchenStatus(order.id, next)
+      onRefresh()
+      onClose()
+    } finally {
+      setIsPending(false)
+    }
+  }
+
+  async function handleStatusUpdate(status: string) {
+    setIsPending(true)
+    try {
+      await updateOrderStatus(order.id, status)
+      onRefresh()
+      onClose()
+    } finally {
+      setIsPending(false)
+    }
+  }
 
   return (
     <div
@@ -312,19 +318,16 @@ function OrderDetailModal({ order, onClose }: { order: Order; onClose: () => voi
                 name={item.product.name}
                 className="w-10 h-10 rounded-[8px]"
               />
-
               <div className="flex-1">
                 <div className="text-[13.5px] font-semibold text-[#1C1917]">
                   {item.quantity}× {item.product.name}
                 </div>
-
                 {item.product.description && (
                   <div className="text-[12px] text-[#A8A29E] font-medium mt-[1px]">
                     {item.product.description}
                   </div>
                 )}
               </div>
-
               <span className="text-[13px] font-bold text-[#1C1917] shrink-0">
                 {formatCurrency(item.total_with_iva)}
               </span>
@@ -340,7 +343,7 @@ function OrderDetailModal({ order, onClose }: { order: Order; onClose: () => voi
           <div className="flex gap-2">
             {order.status === "open" && nextAction && (
               <button
-                onClick={() => kitchenMutation.mutate(nextAction.next)}
+                onClick={() => handleKitchenUpdate(nextAction.next)}
                 disabled={isPending}
                 className={`flex items-center gap-2 text-[13px] font-semibold px-4 py-[8px] rounded-[9px] border-none cursor-pointer disabled:opacity-50 transition-colors ${nextAction.cls}`}
               >
@@ -355,7 +358,7 @@ function OrderDetailModal({ order, onClose }: { order: Order; onClose: () => voi
 
             {order.status === "open" && order.kitchen_status === "delivered" && (
               <button
-                onClick={() => statusMutation.mutate("closed")}
+                onClick={() => handleStatusUpdate("closed")}
                 disabled={isPending}
                 className="flex items-center gap-2 text-[13px] font-semibold px-4 py-[8px] rounded-[9px] bg-[#ECFDF5] text-[#059669] border border-[#D1FAE5] hover:bg-[#D1FAE5] disabled:opacity-50 transition-colors cursor-pointer"
               >
@@ -381,40 +384,38 @@ function OrderDetailModal({ order, onClose }: { order: Order; onClose: () => voi
 export default function OrdersPage() {
   const [filter, setFilter] = useState<FilterStatus>("todos")
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
+  const [orders, setOrders] = useState<Order[]>([])
+  const [isLoading, setIsLoading] = useState(true)
 
-  const { data: orders = [], isLoading } = useQuery<Order[]>({
-    queryKey: ["orders"],
-    queryFn: fetchOrders,
-    refetchInterval: 30 * 1000,
-    staleTime: 15 * 1000,
-  })
+  const loadOrders = useCallback(async () => {
+    try {
+      const data = await fetchOrders()
+      setOrders(data)
+    } catch (err) {
+      console.error("Erro ao carregar pedidos:", err)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadOrders()
+    const interval = setInterval(loadOrders, 30 * 1000)
+    return () => clearInterval(interval)
+  }, [loadOrders])
 
   const safeOrders = Array.isArray(orders) ? orders : []
   const filtered = filter === "todos" ? safeOrders : safeOrders.filter(o => o.status === filter)
 
   const total = safeOrders.length
-  // const open = safeOrders.filter(o => o.status === "open").length
-  // const preparing = safeOrders.filter(o => o.status === "closed").length
-  // const ready = safeOrders.filter(o => o.status === "canceled").length
   const openCount = safeOrders.filter(o => o.status === "open").length
-
   const closedCount = safeOrders.filter(o => o.status === "closed").length
-
   const canceledCount = safeOrders.filter(o => o.status === "canceled").length
-
-  const refundedCount = safeOrders.filter(
-    o => o.status === "refunded"
-  ).length
-
-  const partialRefundCount = safeOrders.filter(
-    o => o.status === "partial_refund"
-  ).length
 
   const STATS = [
     {
       label: "Total de Pedidos", value: String(total), change: "", up: true,
       icon: <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>,
-
       iconColor: "#10B981", iconBg: "#ECFDF5",
     },
     {
@@ -518,6 +519,7 @@ export default function OrdersPage() {
         <OrderDetailModal
           order={selectedOrder}
           onClose={() => setSelectedOrder(null)}
+          onRefresh={loadOrders}
         />
       )}
     </div>

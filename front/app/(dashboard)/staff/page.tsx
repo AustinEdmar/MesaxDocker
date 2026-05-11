@@ -232,9 +232,10 @@ function ShiftSection({ orders }: { orders: UserOrder[] }) {
                 {/* Orders in this shift */}
                 <p className="text-[10px] text-[#A8A29E] uppercase tracking-wider">Pedidos neste turno</p>
                 <div className="flex flex-col gap-1.5 max-h-[140px] overflow-y-auto">
-                  {shiftOrders.map(o => (
-                    <div key={o.id} className="flex items-center justify-between px-3 py-2 bg-[#FAFAF9] rounded-[8px] border border-[#F0EDEB]">
-                      <span className="text-[12px] font-semibold text-[#1C1917]">#{o.id}</span>
+                  {/* {paginated.map((sale, index) => { */}
+                  {shiftOrders.map((o, index) => (
+                    <div key={index} className="flex items-center justify-between px-3 py-2 bg-[#FAFAF9] rounded-[8px] border border-[#F0EDEB]">
+                      <span className="text-[12px] font-semibold text-[#1C1917]">#{index + 1}</span>
                       <span className="text-[10.5px] text-[#A8A29E]">Mesa {o.table_id}</span>
                       <span className={`text-[10.5px] font-semibold px-2 py-[2px] rounded-full ${o.status === "open" ? "bg-[#FFF7ED] text-[#F97316]" :
                         o.status === "closed" ? "bg-[#ECFDF5] text-[#059669]" :

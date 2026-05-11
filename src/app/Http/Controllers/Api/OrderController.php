@@ -97,14 +97,71 @@ class OrderController extends Controller
 
 
 
-    public function getSales()
+    // public function getSales()
+    // {
+
+
+    //     $orders = Orders::with('items.product', 'tables', 'payments', 'shift', 'refunds', 'user')->paginate(2);
+
+    //     return SalesResource::collection($orders);
+
+    // }
+
+    public function getSales(Request $request)
     {
+        $query = Orders::with(
+            'items.product',
+            'tables',
+            'payments',
+            'shift',
+            'refunds',
+            'user'
+        );
 
+        // STATUS
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
 
-        $orders = Orders::with('items.product', 'tables', 'payments', 'shift', 'refunds', 'user')->get();
+        // MÉTODO PAGAMENTO
+        // if ($request->filled('method')) {
+        //     $query->whereHas('payments', function ($q) use ($request) {
+        //         $q->where('method', $request->method);
+        //     });
+        // }
+
+        // PESQUISA
+        if ($request->filled('search')) {
+
+            $search = $request->search;
+
+            $query->where(function ($q) use ($search) {
+
+                // ID pedido
+                $q->where('id', 'like', "%{$search}%")
+
+                    // nome utilizador
+                    ->orWhereHas('user', function ($u) use ($search) {
+                        $u->where('name', 'like', "%{$search}%");
+                    })
+
+                    // mesa
+                    ->orWhereHas('tables', function ($t) use ($search) {
+                        $t->where('number', 'like', "%{$search}%");
+                    })
+
+                    // produtos
+                    ->orWhereHas('items.product', function ($p) use ($search) {
+                        $p->where('name', 'like', "%{$search}%");
+                    });
+            });
+        }
+
+        $orders = $query
+            ->latest()
+            ->paginate($request->per_page ?? 10);
 
         return SalesResource::collection($orders);
-
     }
 
     /**

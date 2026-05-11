@@ -267,4 +267,13 @@ class ShiftsController extends Controller
     }
 
 
+    public function getShifts()
+    {
+
+        $shifts = Shifts::with('orders.refunds', 'payments', 'user', 'orders.payments')->paginate(20);
+
+        return ShiftResource::collection($shifts);
+    }
+
+
 }

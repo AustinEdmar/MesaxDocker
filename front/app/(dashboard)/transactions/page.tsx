@@ -1,7 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
-import { useQuery } from "@tanstack/react-query"
+import { useState, useMemo, useEffect, useCallback } from "react"
 import api from "@/lib/axios"
 import { StatCard } from "@/components/dashboard/StatCard"
 
@@ -12,6 +11,7 @@ interface SaleProduct {
   price: string
   iva: number
   image_path: string | null
+  image_url: string | null
 }
 
 interface SaleItem {
@@ -133,6 +133,10 @@ async function fetchSales(): Promise<Sale[]> {
   return res.data.data
 }
 
+async function refundSale(id: number, reason: string): Promise<void> {
+  await api.post(`/orders/${id}/refund`, { reason })
+}
+
 // ── Sub-components ─────────────────────────────────────────
 function Avatar({ name, size = 7 }: { name: string; size?: number }) {
   return (
@@ -157,12 +161,16 @@ function StatusBadge({ status }: { status: Sale["status"] }) {
   )
 }
 
-function ProductThumb({ path, name }: { path: string | null; name: string }) {
-  const url = getImageUrl(path)
+function ProductThumb({ url, name }: { url: string | null; name: string }) {
   return (
     <div className="w-10 h-10 rounded-[8px] overflow-hidden bg-[#F5F4F0] shrink-0 flex items-center justify-center">
       {url ? (
-        <img src={url} alt={name} className="w-full h-full object-cover" />
+        <img
+          src={url}
+          alt={name}
+          className="w-full h-full object-cover"
+          onError={e => { e.currentTarget.style.display = "none" }}
+        />
       ) : (
         <svg width="14" height="14" fill="none" stroke="#D6D3D1" strokeWidth="1.5" viewBox="0 0 24 24">
           <rect x="3" y="3" width="18" height="18" rx="3" />
@@ -176,17 +184,9 @@ function ProductThumb({ path, name }: { path: string | null; name: string }) {
 
 // ── Pagination ─────────────────────────────────────────────
 function Pagination({
-  page,
-  totalPages,
-  total,
-  pageSize,
-  onChange,
+  page, totalPages, total, pageSize, onChange,
 }: {
-  page: number
-  totalPages: number
-  total: number
-  pageSize: number
-  onChange: (p: number) => void
+  page: number; totalPages: number; total: number; pageSize: number; onChange: (p: number) => void
 }) {
   if (totalPages <= 1) return null
 
@@ -209,37 +209,31 @@ function Pagination({
 
   return (
     <div className="px-5 py-3 border-t border-[#F5F4F0] flex items-center justify-between flex-wrap gap-2">
-      <span className="text-[12px] text-[#9CA3AF]">
-        Mostrando {start}–{end} de {total}
-      </span>
+      <span className="text-[12px] text-[#9CA3AF]">Mostrando {start}–{end} de {total}</span>
       <div className="flex items-center gap-1">
-        <button className={btnClass(false, page === 1)} onClick={() => onChange(1)} disabled={page === 1} title="Primeira">
+        <button className={btnClass(false, page === 1)} onClick={() => onChange(1)} disabled={page === 1}>
           <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
             <polyline points="11 17 6 12 11 7" /><polyline points="18 17 13 12 18 7" />
           </svg>
         </button>
-        <button className={btnClass(false, page === 1)} onClick={() => onChange(page - 1)} disabled={page === 1} title="Anterior">
+        <button className={btnClass(false, page === 1)} onClick={() => onChange(page - 1)} disabled={page === 1}>
           <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
             <polyline points="15 18 9 12 15 6" />
           </svg>
         </button>
-
         {pages.map((n, i) =>
           n === "…" ? (
             <span key={`e${i}`} className="w-[30px] h-[30px] flex items-center justify-center text-[13px] text-[#C4C0BB]">…</span>
           ) : (
-            <button key={n} className={btnClass(page === n)} onClick={() => onChange(n as number)}>
-              {n}
-            </button>
+            <button key={n} className={btnClass(page === n)} onClick={() => onChange(n as number)}>{n}</button>
           )
         )}
-
-        <button className={btnClass(false, page === totalPages)} onClick={() => onChange(page + 1)} disabled={page === totalPages} title="Próxima">
+        <button className={btnClass(false, page === totalPages)} onClick={() => onChange(page + 1)} disabled={page === totalPages}>
           <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
             <polyline points="9 18 15 12 9 6" />
           </svg>
         </button>
-        <button className={btnClass(false, page === totalPages)} onClick={() => onChange(totalPages)} disabled={page === totalPages} title="Última">
+        <button className={btnClass(false, page === totalPages)} onClick={() => onChange(totalPages)} disabled={page === totalPages}>
           <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
             <polyline points="13 17 18 12 13 7" /><polyline points="6 17 11 12 6 7" />
           </svg>
@@ -250,10 +244,46 @@ function Pagination({
 }
 
 // ── Detail Modal ───────────────────────────────────────────
-function SaleDetailModal({ sale, onClose }: { sale: Sale; onClose: () => void }) {
+function SaleDetailModal({
+  sale,
+  onClose,
+  onRefresh,
+}: {
+  sale: Sale
+  onClose: () => void
+  onRefresh: () => void
+}) {
+  const [confirmRefund, setConfirmRefund] = useState(false)
+  const [refundReason, setRefundReason] = useState("")
+  const [isPending, setIsPending] = useState(false)
+  const [isError, setIsError] = useState(false)
+
   const s = STATUS_CFG[sale.status] ?? STATUS_CFG.open
   const payment = sale.payments[0] ?? null
   const refund = sale.refunds[0] ?? null
+
+  const reasonIsValid = refundReason.trim().length >= 5
+
+  async function handleRefund() {
+    if (!reasonIsValid) return
+    setIsPending(true)
+    setIsError(false)
+    try {
+      await refundSale(sale.id, refundReason.trim())
+      onRefresh()
+      onClose()
+    } catch {
+      setIsError(true)
+    } finally {
+      setIsPending(false)
+    }
+  }
+
+  function handleOpenRefund() {
+    setRefundReason("")
+    setIsError(false)
+    setConfirmRefund(true)
+  }
 
   return (
     <div
@@ -266,14 +296,10 @@ function SaleDetailModal({ sale, onClose }: { sale: Sale; onClose: () => void })
         style={{ animation: "slideUp 0.22s cubic-bezier(0.34,1.56,0.64,1)" }}
         onClick={e => e.stopPropagation()}
       >
-
         {/* ── Header ── */}
         <div className="px-5 pt-5 pb-4 border-b border-[#F5F4F0] flex items-start justify-between gap-3 shrink-0">
           <div className="flex items-center gap-3">
-            {/* Avatar atendente */}
-            <div
-              className="w-10 h-10 rounded-[10px] bg-[#FFF4ED] border border-[#FED7AA] flex items-center justify-center text-[#F97316] font-bold text-[13px] shrink-0"
-            >
+            <div className="w-10 h-10 rounded-[10px] bg-[#FFF4ED] border border-[#FED7AA] flex items-center justify-center text-[#F97316] font-bold text-[13px] shrink-0">
               {getInitials(sale.user.name)}
             </div>
             <div>
@@ -302,13 +328,13 @@ function SaleDetailModal({ sale, onClose }: { sale: Sale; onClose: () => void })
           {/* Itens */}
           <section>
             <p className="text-[10.5px] font-semibold text-[#C4C0BB] uppercase tracking-widest mb-2">Itens do pedido</p>
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2 overflow-y-auto max-h-[200px] h-full overflow-y-scroll pr-2">
               {sale.items.map(item => (
-                <div
-                  key={item.id}
-                  className="flex items-center gap-3 px-3 py-2.5 bg-[#FAFAF9] rounded-[10px] border border-[#F0EDEB]"
-                >
-                  <ProductThumb path={item.product.image_path} name={item.product.name} />
+                <div key={item.id} className="flex items-center gap-3 px-3 py-2.5 bg-[#FAFAF9] rounded-[10px] border border-[#F0EDEB]">
+                  <ProductThumb
+                    url={item.product.image_url ?? getImageUrl(item.product.image_path)}
+                    name={item.product.name}
+                  />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-baseline justify-between gap-2">
                       <span className="text-[13px] font-semibold text-[#1C1917] truncate">
@@ -330,7 +356,7 @@ function SaleDetailModal({ sale, onClose }: { sale: Sale; onClose: () => void })
             </div>
           </section>
 
-          {/* Resumo financeiro */}
+          {/* Resumo */}
           <section>
             <p className="text-[10.5px] font-semibold text-[#C4C0BB] uppercase tracking-widest mb-2">Resumo</p>
             <div className="rounded-[10px] border border-[#F0EDEB] overflow-hidden">
@@ -353,11 +379,9 @@ function SaleDetailModal({ sale, onClose }: { sale: Sale; onClose: () => void })
             </div>
           </section>
 
-          {/* Pagamento + Reembolso — lado a lado se existirem os dois */}
+          {/* Pagamento + Reembolso */}
           {(payment || refund) && (
             <div className={`grid gap-4 ${payment && refund ? "grid-cols-2" : "grid-cols-1"}`}>
-
-              {/* Pagamento */}
               {payment && (
                 <section>
                   <p className="text-[10.5px] font-semibold text-[#C4C0BB] uppercase tracking-widest mb-2">Pagamento</p>
@@ -369,10 +393,7 @@ function SaleDetailModal({ sale, onClose }: { sale: Sale; onClose: () => void })
                       { label: "Troco", value: payment.change ? fmtCurrency(payment.change) : "—" },
                       { label: "Pago em", value: `${fmtDate(payment.paid_at)} ${fmtTime(payment.paid_at)}` },
                     ].map((r, i, arr) => (
-                      <div
-                        key={i}
-                        className={`flex items-start justify-between px-3 py-2 ${i < arr.length - 1 ? "border-b border-[#F5F4F0]" : ""}`}
-                      >
+                      <div key={i} className={`flex items-start justify-between px-3 py-2 ${i < arr.length - 1 ? "border-b border-[#F5F4F0]" : ""}`}>
                         <span className="text-[11.5px] text-[#A8A29E]">{r.label}</span>
                         <span className="text-[11.5px] font-semibold text-[#1C1917] text-right max-w-[130px]">{r.value}</span>
                       </div>
@@ -380,8 +401,6 @@ function SaleDetailModal({ sale, onClose }: { sale: Sale; onClose: () => void })
                   </div>
                 </section>
               )}
-
-              {/* Reembolso */}
               {refund && (
                 <section>
                   <p className="text-[10.5px] font-semibold text-[#3B82F6] uppercase tracking-widest mb-2">Reembolso</p>
@@ -392,10 +411,7 @@ function SaleDetailModal({ sale, onClose }: { sale: Sale; onClose: () => void })
                       { label: "Motivo", value: refund.reason },
                       { label: "Data", value: fmtDate(refund.created_at) },
                     ].map((r, i, arr) => (
-                      <div
-                        key={i}
-                        className={`flex items-start justify-between px-3 py-2 ${i < arr.length - 1 ? "border-b border-[#BFDBFE]" : ""}`}
-                      >
+                      <div key={i} className={`flex items-start justify-between px-3 py-2 ${i < arr.length - 1 ? "border-b border-[#BFDBFE]" : ""}`}>
                         <span className="text-[11.5px] text-[#93C5FD]">{r.label}</span>
                         <span className="text-[11.5px] font-semibold text-[#1E40AF] text-right max-w-[130px]">{r.value}</span>
                       </div>
@@ -405,7 +421,6 @@ function SaleDetailModal({ sale, onClose }: { sale: Sale; onClose: () => void })
               )}
             </div>
           )}
-
         </div>
 
         {/* ── Footer ── */}
@@ -413,6 +428,18 @@ function SaleDetailModal({ sale, onClose }: { sale: Sale; onClose: () => void })
           {sale.status === "open" && (
             <button className="flex-1 text-[13px] font-semibold px-4 py-[9px] rounded-[9px] bg-[#F97316] text-white hover:bg-[#EA6C0A] transition-colors cursor-pointer border-none">
               Confirmar pagamento
+            </button>
+          )}
+          {sale.status === "closed" && (
+            <button
+              onClick={handleOpenRefund}
+              className="flex items-center justify-center gap-2 text-[13px] font-semibold px-4 py-[9px] rounded-[9px] bg-[#EFF6FF] text-[#3B82F6] border border-[#BFDBFE] hover:bg-[#DBEAFE] transition-colors cursor-pointer"
+            >
+              <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <polyline points="1 4 1 10 7 10" />
+                <path d="M3.51 15a9 9 0 102.13-9.36L1 10" />
+              </svg>
+              Reembolsar
             </button>
           )}
           <button
@@ -423,6 +450,122 @@ function SaleDetailModal({ sale, onClose }: { sale: Sale; onClose: () => void })
           </button>
         </div>
       </div>
+
+      {/* ── Modal de confirmação de reembolso ── */}
+      {confirmRefund && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+          onClick={() => !isPending && setConfirmRefund(false)}
+        >
+          <div
+            className="bg-white rounded-[16px] w-full max-w-[400px] shadow-[0_24px_64px_rgba(0,0,0,0.22)] overflow-hidden"
+            style={{ animation: "slideUp 0.2s cubic-bezier(0.34,1.56,0.64,1)" }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Ícone + título */}
+            <div className="px-6 pt-6 pb-4 flex flex-col items-center gap-3 text-center">
+              <div className="w-12 h-12 rounded-full bg-[#EFF6FF] border border-[#BFDBFE] flex items-center justify-center">
+                <svg width="22" height="22" fill="none" stroke="#3B82F6" strokeWidth="2" viewBox="0 0 24 24">
+                  <polyline points="1 4 1 10 7 10" />
+                  <path d="M3.51 15a9 9 0 102.13-9.36L1 10" />
+                </svg>
+              </div>
+              <div>
+                <h4 className="text-[15px] font-bold text-[#1C1917] mb-1">Confirmar Reembolso</h4>
+                <p className="text-[12.5px] text-[#78716C] leading-relaxed">
+                  Pedido <strong className="text-[#1C1917]">#{sale.id}</strong> · valor de{" "}
+                  <strong className="text-[#3B82F6]">{fmtCurrency(sale.total)}</strong>
+                </p>
+              </div>
+            </div>
+
+            {/* Campo de motivo */}
+            <div className="px-6 pb-4 flex flex-col gap-[6px]">
+              <label className="text-[11.5px] font-semibold text-[#78716C] flex items-center gap-1">
+                Motivo do reembolso
+                <span className="text-[#EF4444]">*</span>
+              </label>
+              <textarea
+                value={refundReason}
+                onChange={e => setRefundReason(e.target.value)}
+                placeholder="Descreva o motivo do reembolso..."
+                rows={3}
+                disabled={isPending}
+                className={`w-full resize-none border rounded-[10px] px-3 py-2.5 text-[13px] text-[#1C1917] outline-none transition-all placeholder:text-[#C4C0BB] disabled:opacity-50
+                  ${!reasonIsValid && refundReason.length > 0
+                    ? "border-[#FECACA] focus:border-[#EF4444] focus:ring-2 focus:ring-[#EF4444]/20"
+                    : "border-[#E7E5E4] focus:border-[#3B82F6] focus:ring-2 focus:ring-[#3B82F6]/20"
+                  }`}
+              />
+              <div className="flex items-center justify-between">
+                {!reasonIsValid && refundReason.length > 0 ? (
+                  <span className="text-[11px] text-[#EF4444]">Mínimo de 5 caracteres</span>
+                ) : (
+                  <span className="text-[11px] text-[#A8A29E]">Campo obrigatório</span>
+                )}
+                <span className={`text-[11px] ${refundReason.length > 0 ? "text-[#9CA3AF]" : "text-[#C4C0BB]"}`}>
+                  {refundReason.length} car.
+                </span>
+              </div>
+
+              {/* Sugestões rápidas */}
+              <div className="flex flex-wrap gap-1.5 mt-1">
+                {["Produto com defeito", "Pedido errado", "Demora excessiva", "Insatisfação do cliente"].map(suggestion => (
+                  <button
+                    key={suggestion}
+                    type="button"
+                    onClick={() => setRefundReason(suggestion)}
+                    disabled={isPending}
+                    className="text-[11px] font-medium px-2.5 py-[4px] rounded-full border border-[#E7E5E4] text-[#78716C] bg-[#FAFAF9] hover:border-[#3B82F6] hover:text-[#3B82F6] hover:bg-[#EFF6FF] transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Aviso */}
+            <div className="mx-6 mb-4 text-[11.5px] text-[#78716C] bg-[#FAFAF9] border border-[#F0EDEB] rounded-[8px] px-3 py-2 leading-relaxed">
+              O estoque dos produtos será reposto e o pagamento marcado como reembolsado.
+            </div>
+
+            {/* Erro */}
+            {isError && (
+              <div className="mx-6 mb-4 text-[12px] text-[#EF4444] bg-[#FEF2F2] border border-[#FECACA] rounded-[8px] px-3 py-2">
+                Erro ao processar reembolso. Tente novamente.
+              </div>
+            )}
+
+            {/* Botões */}
+            <div className="px-6 pb-6 flex gap-2">
+              <button
+                onClick={() => setConfirmRefund(false)}
+                disabled={isPending}
+                className="flex-1 text-[13px] font-semibold px-4 py-[9px] rounded-[9px] bg-[#F5F4F0] text-[#78716C] border border-[#E7E5E4] hover:bg-[#ECEAE7] disabled:opacity-50 transition-colors cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleRefund}
+                disabled={isPending || !reasonIsValid}
+                className="flex-1 flex items-center justify-center gap-2 text-[13px] font-semibold px-4 py-[9px] rounded-[9px] bg-[#3B82F6] text-white hover:bg-[#2563EB] disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer border-none"
+              >
+                {isPending ? (
+                  <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+                    <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" opacity=".25" />
+                    <path d="M21 12a9 9 0 01-9 9" />
+                  </svg>
+                ) : (
+                  <svg width="14" height="14" fill="none" stroke="white" strokeWidth="2" viewBox="0 0 24 24">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                )}
+                {isPending ? "Processando..." : "Confirmar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style>{`
         @keyframes fadeIn  { from { opacity: 0 } to { opacity: 1 } }
@@ -439,12 +582,23 @@ export default function TransactionsPage() {
   const [search, setSearch] = useState("")
   const [methodFilter, setMethodFilter] = useState("todos")
   const [page, setPage] = useState(1)
+  const [sales, setSales] = useState<Sale[]>([])
+  const [isLoading, setIsLoading] = useState(true)
 
-  const { data: sales = [], isLoading } = useQuery({
-    queryKey: ["sales"],
-    queryFn: fetchSales,
-    staleTime: 2 * 60 * 1000,
-  })
+  const loadSales = useCallback(async () => {
+    try {
+      const data = await fetchSales()
+      setSales(data)
+    } catch (err) {
+      console.error("Erro ao carregar vendas:", err)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadSales()
+  }, [loadSales])
 
   const filtered = useMemo(() => {
     return sales
@@ -465,20 +619,9 @@ export default function TransactionsPage() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
-  function handleFilterChange(value: FilterStatus) {
-    setFilter(value)
-    setPage(1)
-  }
-
-  function handleSearchChange(value: string) {
-    setSearch(value)
-    setPage(1)
-  }
-
-  function handleMethodChange(value: string) {
-    setMethodFilter(value)
-    setPage(1)
-  }
+  function handleFilterChange(value: FilterStatus) { setFilter(value); setPage(1) }
+  function handleSearchChange(value: string) { setSearch(value); setPage(1) }
+  function handleMethodChange(value: string) { setMethodFilter(value); setPage(1) }
 
   const revenue = useMemo(() => sales.filter(s => s.status === "closed").reduce((a, s) => a + Number(s.total), 0), [sales])
   const paidCount = useMemo(() => sales.filter(s => s.status === "closed").length, [sales])
@@ -619,8 +762,9 @@ export default function TransactionsPage() {
                 </tr>
               </thead>
               <tbody>
-                {paginated.map(sale => {
+                {paginated.map((sale, index) => {
                   const payment = sale.payments[0] ?? null
+                  const seqNumber = (page - 1) * PAGE_SIZE + index + 1
                   return (
                     <tr
                       key={sale.id}
@@ -628,7 +772,7 @@ export default function TransactionsPage() {
                       className="cursor-pointer hover:[&>td]:bg-[#FDFCFC] transition-colors"
                     >
                       <td className="px-4 py-3 border-b border-[#FAFAF9]">
-                        <span className="text-[12.5px] font-bold text-[#1C1917]">#{sale.id}</span>
+                        <span className="text-[12.5px] font-bold text-[#1C1917]">#{seqNumber}</span>
                       </td>
                       <td className="px-4 py-3 border-b border-[#FAFAF9]">
                         <span className="text-[12.5px] font-semibold text-[#78716C]">Mesa {sale.tables.number}</span>
@@ -716,7 +860,11 @@ export default function TransactionsPage() {
       </div>
 
       {selectedSale && (
-        <SaleDetailModal sale={selectedSale} onClose={() => setSelectedSale(null)} />
+        <SaleDetailModal
+          sale={selectedSale}
+          onClose={() => setSelectedSale(null)}
+          onRefresh={loadSales}
+        />
       )}
     </div>
   )

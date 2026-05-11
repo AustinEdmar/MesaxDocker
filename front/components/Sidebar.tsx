@@ -75,6 +75,16 @@ const ChevronLeftIcon = ({ flipped }: { flipped?: boolean }) => (
     <path d="M15 18l-6-6 6-6" />
   </svg>
 )
+
+const ShiftIcon = () => (
+  <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+    <rect x="2" y="3" width="20" height="18" rx="2" ry="2" />
+    <path d="M7 2v4M17 2v4M7 22v-6M17 22v-6" />
+    <path d="M7 10h3v3h3v3h3" />
+    <path d="M7 16h10" />
+  </svg>
+)
+
 const ProductIcon = () => (
   <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
     <path d="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z" />
@@ -90,9 +100,10 @@ const NAV_GROUPS = [
       { label: "Pedidos", href: "/orders", badge: "3", icon: <OrderIcon /> },
       { label: "Categorias", href: "/categories", icon: <CategoriesIcon /> },
       { label: "Produtos", href: "/products", icon: <ProductIcon /> },
-      { label: "Cardápio", href: "/menu", icon: <MenuIcon /> },
-      { label: "Estoque", href: "/inventory", icon: <StockIcon /> },
+      //{ label: "Cardápio", href: "/menu", icon: <MenuIcon /> },
+      //{ label: "Estoque", href: "/inventory", icon: <StockIcon /> },
       { label: "Transações", href: "/transactions", icon: <TransactionIcon /> },
+      { label: "Turnos", href: "/shifts", icon: <ShiftIcon /> },
     ],
   },
   {

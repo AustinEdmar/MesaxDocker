@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\CategoryController;
 
+use App\Http\Controllers\ReportsController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 
@@ -58,6 +59,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/shifts/current', [ShiftsController::class, 'current']);
     Route::post('/shifts/open', [ShiftsController::class, 'open']);
     Route::post('/shifts/close', [ShiftsController::class, 'close']);
+    Route::get('/shifts', [ShiftsController::class, 'getShifts']);
 
     // Products
     Route::get('/products', [ProductController::class, 'index']);
@@ -85,6 +87,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/items/{itemId}/refund', [OrderController::class, 'refundItem']);
 
     Route::get('/orders/sales', [OrderController::class, 'getSales']);
+
+    // Reports
+    Route::get('/reports', [ReportsController::class, 'index']);
 
     // Admin
     Route::middleware('access.level:1')->group(function () {
