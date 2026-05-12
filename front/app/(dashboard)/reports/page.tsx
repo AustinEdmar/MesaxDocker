@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import api from "@/lib/axios"
 import { StatCard } from "@/components/dashboard/StatCard"
+import { exportReportPdf } from "../../../lib/exportReportPdf"
 
 // ── Types ──────────────────────────────────────────────────
 interface ReportProduct {
@@ -28,53 +29,30 @@ interface ReportItem {
   product: ReportProduct
 }
 
-interface ReportTable {
-  id: number
-  number: number
-  status: string
-}
+interface ReportTable { id: number; number: number; status: string }
 
 interface ReportPayment {
-  id: number
-  order_id: number
-  shift_id: number
-  method: string
-  amount: string
-  received: string | null
-  change: string | null
-  status: string
-  paid_at: string
+  id: number; order_id: number; shift_id: number
+  method: string; amount: string
+  received: string | null; change: string | null
+  status: string; paid_at: string
 }
 
 interface ReportShift {
-  id: number
-  user_id: number
-  initial_amount: string
-  final_cash_amount: string
-  status: string
-  opened_at: string
-  closed_at: string | null
+  id: number; user_id: number
+  initial_amount: string; final_cash_amount: string
+  status: string; opened_at: string; closed_at: string | null
+  user: ReportUser
 }
 
-interface ReportUser {
-  id: number
-  name: string
-  email: string
-}
+interface ReportUser { id: number; name: string; email: string }
 
 interface ReportOrder {
-  id: number
-  table_id: number
-  user_id: number
-  shift_id: number
+  id: number; table_id: number; user_id: number; shift_id: number
   status: "open" | "closed" | "canceled" | "refunded" | "partial_refund"
   kitchen_status: string | null
-  iva: string
-  subtotal: string
-  discount: string
-  total: string
-  opened_at: string
-  closed_at: string | null
+  iva: string; subtotal: string; discount: string; total: string
+  opened_at: string; closed_at: string | null
   items: ReportItem[]
   tables: ReportTable
   payments: ReportPayment[]
@@ -91,31 +69,21 @@ interface ReportTotals {
 }
 
 interface PaginatedData {
-  current_page: number
-  data: ReportOrder[]
-  last_page: number
-  per_page: number
-  total: number
-  from: number
-  to: number
+  current_page: number; data: ReportOrder[]
+  last_page: number; per_page: number
+  total: number; from: number; to: number
 }
 
 interface ReportResponse {
-  success: boolean
-  totals: ReportTotals
-  data: PaginatedData
+  success: boolean; totals: ReportTotals; data: PaginatedData
 }
 
 interface Filters {
-  status: string
-  payment_method: string
-  date_from: string
-  date_to: string
-  search: string
-  sort_by: string
+  status: string; payment_method: string
+  date_from: string; date_to: string
+  search: string; sort_by: string
   sort_order: "asc" | "desc"
-  per_page: number
-  page: number
+  per_page: number; page: number
 }
 
 // ── Constants ──────────────────────────────────────────────
@@ -170,9 +138,24 @@ async function fetchReport(filters: Filters): Promise<ReportResponse> {
   params.sort_order = filters.sort_order
   params.per_page = filters.per_page
   params.page = filters.page
-
   const res = await api.get("/reports", { params })
   return res.data
+}
+
+// For PDF export we fetch ALL pages (no pagination limit)
+async function fetchAllOrders(filters: Filters): Promise<ReportOrder[]> {
+  const params: Record<string, string | number> = {}
+  if (filters.status) params.status = filters.status
+  if (filters.payment_method) params.payment_method = filters.payment_method
+  if (filters.date_from) params.date_from = filters.date_from
+  if (filters.date_to) params.date_to = filters.date_to
+  if (filters.search) params.search = filters.search
+  params.sort_by = filters.sort_by
+  params.sort_order = filters.sort_order
+  params.per_page = 500
+  params.page = 1
+  const res = await api.get("/reports", { params })
+  return res.data.data.data
 }
 
 // ── Sub-components ─────────────────────────────────────────
@@ -210,7 +193,6 @@ function Pagination({ page, lastPage, from, to, total, onChange }: {
   page: number; lastPage: number; from: number; to: number; total: number; onChange: (p: number) => void
 }) {
   if (lastPage <= 1) return null
-
   const pages = Array.from({ length: lastPage }, (_, i) => i + 1)
     .filter(n => n === 1 || n === lastPage || Math.abs(n - page) <= 1)
     .reduce<(number | "…")[]>((acc, n, idx, arr) => {
@@ -227,19 +209,13 @@ function Pagination({ page, lastPage, from, to, total, onChange }: {
 
   return (
     <div className="px-5 py-3 border-t border-[#F5F4F0] flex items-center justify-between flex-wrap gap-2">
-      <span className="text-[12px] text-[#9CA3AF]">
-        Mostrando {from}–{to} de {total}
-      </span>
+      <span className="text-[12px] text-[#9CA3AF]">Mostrando {from}–{to} de {total}</span>
       <div className="flex items-center gap-1">
         <button className={btn(false, page === 1)} onClick={() => onChange(1)} disabled={page === 1}>
-          <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-            <polyline points="11 17 6 12 11 7" /><polyline points="18 17 13 12 18 7" />
-          </svg>
+          <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polyline points="11 17 6 12 11 7" /><polyline points="18 17 13 12 18 7" /></svg>
         </button>
         <button className={btn(false, page === 1)} onClick={() => onChange(page - 1)} disabled={page === 1}>
-          <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
+          <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6" /></svg>
         </button>
         {pages.map((n, i) =>
           n === "…" ? (
@@ -249,14 +225,10 @@ function Pagination({ page, lastPage, from, to, total, onChange }: {
           )
         )}
         <button className={btn(false, page === lastPage)} onClick={() => onChange(page + 1)} disabled={page === lastPage}>
-          <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
+          <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6" /></svg>
         </button>
         <button className={btn(false, page === lastPage)} onClick={() => onChange(lastPage)} disabled={page === lastPage}>
-          <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-            <polyline points="13 17 18 12 13 7" /><polyline points="6 17 11 12 6 7" />
-          </svg>
+          <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polyline points="13 17 18 12 13 7" /><polyline points="6 17 11 12 6 7" /></svg>
         </button>
       </div>
     </div>
@@ -266,7 +238,6 @@ function Pagination({ page, lastPage, from, to, total, onChange }: {
 // ── Detail Modal ───────────────────────────────────────────
 function OrderDetailModal({ order, onClose }: { order: ReportOrder; onClose: () => void }) {
   const payment = order.payments[0] ?? null
-
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[rgba(28,25,23,0.55)] backdrop-blur-[2px]"
@@ -278,7 +249,6 @@ function OrderDetailModal({ order, onClose }: { order: ReportOrder; onClose: () 
         style={{ animation: "slideUp 0.22s cubic-bezier(0.34,1.56,0.64,1)" }}
         onClick={e => e.stopPropagation()}
       >
-        {/* Header */}
         <div className="px-5 pt-5 pb-4 border-b border-[#F5F4F0] flex items-start justify-between gap-3 shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-[10px] bg-[#FFF4ED] border border-[#FED7AA] flex items-center justify-center text-[#F97316] font-bold text-[13px] shrink-0">
@@ -294,18 +264,11 @@ function OrderDetailModal({ order, onClose }: { order: ReportOrder; onClose: () 
               </p>
             </div>
           </div>
-          <button onClick={onClose}
-            className="w-8 h-8 shrink-0 flex items-center justify-center rounded-[8px] border border-[#E7E5E4] text-[#9CA3AF] hover:border-[#EF4444] hover:text-[#EF4444] hover:bg-[#FEF2F2] transition-all bg-transparent cursor-pointer">
-            <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
+          <button onClick={onClose} className="w-8 h-8 shrink-0 flex items-center justify-center rounded-[8px] border border-[#E7E5E4] text-[#9CA3AF] hover:border-[#EF4444] hover:text-[#EF4444] hover:bg-[#FEF2F2] transition-all bg-transparent cursor-pointer">
+            <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
           </button>
         </div>
-
-        {/* Body */}
         <div className="flex flex-col gap-4 overflow-y-auto min-h-0 flex-1 px-5 py-4">
-
-          {/* Itens */}
           <section>
             <p className="text-[10.5px] font-semibold text-[#C4C0BB] uppercase tracking-widest mb-2">Itens do pedido</p>
             <div className="flex flex-col gap-2">
@@ -313,12 +276,8 @@ function OrderDetailModal({ order, onClose }: { order: ReportOrder; onClose: () 
                 <div key={item.id} className="flex items-center gap-3 px-3 py-2.5 bg-[#FAFAF9] rounded-[10px] border border-[#F0EDEB]">
                   <div className="w-10 h-10 rounded-[8px] overflow-hidden bg-[#F5F4F0] shrink-0 flex items-center justify-center">
                     {getImageUrl(item.product.image_path) ? (
-                      <img src={getImageUrl(item.product.image_path)!} alt={item.product.name}
-                        className="w-full h-full object-cover"
-                        onError={e => { e.currentTarget.style.display = "none" }} />
-                    ) : (
-                      <span className="text-[14px]">🍽</span>
-                    )}
+                      <img src={getImageUrl(item.product.image_path)!} alt={item.product.name} className="w-full h-full object-cover" onError={e => { e.currentTarget.style.display = "none" }} />
+                    ) : <span className="text-[14px]">🍽</span>}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-baseline justify-between gap-2">
@@ -334,8 +293,6 @@ function OrderDetailModal({ order, onClose }: { order: ReportOrder; onClose: () 
               ))}
             </div>
           </section>
-
-          {/* Resumo financeiro */}
           <section>
             <p className="text-[10.5px] font-semibold text-[#C4C0BB] uppercase tracking-widest mb-2">Resumo</p>
             <div className="rounded-[10px] border border-[#F0EDEB] overflow-hidden">
@@ -357,8 +314,6 @@ function OrderDetailModal({ order, onClose }: { order: ReportOrder; onClose: () 
               </div>
             </div>
           </section>
-
-          {/* Pagamento + Turno */}
           <div className="grid grid-cols-2 gap-4">
             {payment && (
               <section>
@@ -398,11 +353,8 @@ function OrderDetailModal({ order, onClose }: { order: ReportOrder; onClose: () 
             )}
           </div>
         </div>
-
-        {/* Footer */}
         <div className="px-5 pb-5 pt-4 border-t border-[#F5F4F0] shrink-0">
-          <button onClick={onClose}
-            className="w-full text-[13px] font-semibold px-4 py-[9px] rounded-[9px] bg-[#F5F4F0] text-[#78716C] border border-[#E7E5E4] hover:bg-[#ECEAE7] transition-colors cursor-pointer">
+          <button onClick={onClose} className="w-full text-[13px] font-semibold px-4 py-[9px] rounded-[9px] bg-[#F5F4F0] text-[#78716C] border border-[#E7E5E4] hover:bg-[#ECEAE7] transition-colors cursor-pointer">
             Fechar
           </button>
         </div>
@@ -417,15 +369,10 @@ function OrderDetailModal({ order, onClose }: { order: ReportOrder; onClose: () 
 
 // ── Page ───────────────────────────────────────────────────
 const DEFAULT_FILTERS: Filters = {
-  status: "",
-  payment_method: "",
-  date_from: "",
-  date_to: "",
-  search: "",
-  sort_by: "opened_at",
-  sort_order: "desc",
-  per_page: 10,
-  page: 1,
+  status: "", payment_method: "",
+  date_from: "", date_to: "",
+  search: "", sort_by: "opened_at", sort_order: "desc",
+  per_page: 10, page: 1,
 }
 
 export default function ReportsPage() {
@@ -435,9 +382,22 @@ export default function ReportsPage() {
   const [pagination, setPagination] = useState({ currentPage: 1, lastPage: 1, from: 0, to: 0, total: 0 })
   const [isLoading, setIsLoading] = useState(true)
   const [selectedOrder, setSelectedOrder] = useState<ReportOrder | null>(null)
-
-  // debounce search
+  const [exportingPdf, setExportingPdf] = useState(false)
+  const [exportingCsv, setExportingCsv] = useState(false)
+  const [showExportMenu, setShowExportMenu] = useState(false)
+  const exportMenuRef = useRef<HTMLDivElement>(null)
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Close export menu on outside click
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(e.target as Node)) {
+        setShowExportMenu(false)
+      }
+    }
+    document.addEventListener("mousedown", handler)
+    return () => document.removeEventListener("mousedown", handler)
+  }, [])
 
   const load = useCallback(async (f: Filters) => {
     setIsLoading(true)
@@ -481,9 +441,7 @@ export default function ReportsPage() {
     }))
   }
 
-  function handlePage(p: number) {
-    setFilters(prev => ({ ...prev, page: p }))
-  }
+  function handlePage(p: number) { setFilters(prev => ({ ...prev, page: p })) }
 
   function handleReset() {
     setFilters(DEFAULT_FILTERS)
@@ -491,33 +449,61 @@ export default function ReportsPage() {
     if (input) input.value = ""
   }
 
-  function exportCsv() {
-    if (!orders.length) return
-    const headers = ["ID", "Mesa", "Atendente", "Turno", "Estado", "Método", "Subtotal", "IVA", "Desconto", "Total", "Data"]
-    const rows = orders.map(o => {
-      const p = o.payments[0] ?? null
-      return [
-        o.id,
-        `Mesa ${o.tables.number}`,
-        o.user.name,
-        o.shift ? `#${o.shift.id}` : "—",
-        STATUS_CFG[o.status]?.label ?? o.status,
-        p ? (METHOD_LABELS[p.method] ?? p.method) : "—",
-        o.subtotal,
-        o.iva,
-        o.discount,
-        o.total,
-        fmtDate(o.opened_at),
-      ]
-    })
-    const csv = [headers, ...rows].map(r => r.join(";")).join("\n")
-    const blob = new Blob([csv], { type: "text/csv" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `relatorio_${new Date().toISOString().slice(0, 10)}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
+  // ── CSV Export ──────────────────────────────────────────
+  async function handleExportCsv() {
+    setExportingCsv(true)
+    setShowExportMenu(false)
+    try {
+      const allOrders = await fetchAllOrders(filters)
+      const headers = ["ID", "Mesa", "Atendente", "Turno", "Estado", "Método", "Subtotal", "IVA", "Desconto", "Total", "Data"]
+      const rows = allOrders.map(o => {
+        const p = o.payments[0] ?? null
+        return [
+          o.id, `Mesa ${o.tables.number}`,
+          o.user.name,
+          o.shift ? `#${o.shift.id}` : "—",
+          STATUS_CFG[o.status]?.label ?? o.status,
+          p ? (METHOD_LABELS[p.method] ?? p.method) : "—",
+          o.subtotal, o.iva, o.discount, o.total, fmtDate(o.opened_at),
+        ]
+      })
+      const csv = [headers, ...rows].map(r => r.join(";")).join("\n")
+      const blob = new Blob([csv], { type: "text/csv" })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `relatorio_${new Date().toISOString().slice(0, 10)}.csv`
+      a.click()
+      URL.revokeObjectURL(url)
+    } finally {
+      setExportingCsv(false)
+    }
+  }
+
+  // ── PDF Export ──────────────────────────────────────────
+  async function handleExportPdf() {
+    setExportingPdf(true)
+    setShowExportMenu(false)
+    try {
+      const allOrders = await fetchAllOrders(filters)
+      // Build period label from active date filters
+      let periodLabel = ""
+      if (filters.date_from && filters.date_to) {
+        periodLabel = `${fmtDate(filters.date_from)} a ${fmtDate(filters.date_to)}`
+      } else if (filters.date_from) {
+        periodLabel = `A partir de ${fmtDate(filters.date_from)}`
+      } else if (filters.date_to) {
+        periodLabel = `Até ${fmtDate(filters.date_to)}`
+      }
+      // totals from the current loaded state (covers filtered set)
+      if (totals) {
+        await exportReportPdf(allOrders, totals, filters, periodLabel || undefined)
+      }
+    } catch (err) {
+      console.error("Erro ao exportar PDF:", err)
+    } finally {
+      setExportingPdf(false)
+    }
   }
 
   const hasActiveFilters = filters.status || filters.payment_method || filters.date_from || filters.date_to || filters.search
@@ -566,15 +552,65 @@ export default function ReportsPage() {
           <h1 className="text-[22px] font-bold text-[#1C1917] tracking-tight">Relatórios</h1>
           <p className="text-[13px] text-[#9CA3AF] mt-[2px]">Análise detalhada de pedidos e receitas</p>
         </div>
-        <button
-          onClick={exportCsv}
-          className="flex items-center gap-[6px] text-[12.5px] font-semibold px-4 py-[7px] rounded-[8px] bg-white border border-[#E7E5E4] text-[#78716C] hover:border-[#F97316] hover:text-[#F97316] transition-colors cursor-pointer"
-        >
-          <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" />
-          </svg>
-          Exportar CSV
-        </button>
+
+        {/* Export dropdown */}
+        <div className="relative" ref={exportMenuRef}>
+          <button
+            onClick={() => setShowExportMenu(v => !v)}
+            disabled={exportingPdf || exportingCsv}
+            className="flex items-center gap-[6px] text-[12.5px] font-semibold px-4 py-[7px] rounded-[8px] bg-white border border-[#E7E5E4] text-[#78716C] hover:border-[#F97316] hover:text-[#F97316] transition-colors cursor-pointer disabled:opacity-50"
+          >
+            {(exportingPdf || exportingCsv) ? (
+              <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" opacity=".25" /><path d="M21 12a9 9 0 01-9 9" />
+              </svg>
+            ) : (
+              <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" />
+              </svg>
+            )}
+            {exportingPdf ? "A gerar PDF…" : exportingCsv ? "A gerar CSV…" : "Exportar"}
+            <svg width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className={`transition-transform ${showExportMenu ? "rotate-180" : ""}`}>
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </button>
+
+          {showExportMenu && (
+            <div className="absolute right-0 top-full mt-2 w-[190px] bg-white rounded-[12px] border border-[#E7E5E4] shadow-[0_8px_24px_rgba(0,0,0,0.10)] overflow-hidden z-20"
+              style={{ animation: "slideUp 0.15s ease" }}>
+              <button
+                onClick={handleExportCsv}
+                className="w-full flex items-center gap-2.5 px-4 py-3 text-[12.5px] font-medium text-[#1C1917] hover:bg-[#F5F4F0] transition-colors cursor-pointer text-left"
+              >
+                <div className="w-7 h-7 rounded-[7px] bg-[#ECFDF5] flex items-center justify-center shrink-0">
+                  <svg width="13" height="13" fill="none" stroke="#059669" strokeWidth="2" viewBox="0 0 24 24">
+                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><polyline points="14 2 14 8 20 8" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-[12.5px] font-semibold text-[#1C1917]">Exportar CSV</p>
+                  <p className="text-[10.5px] text-[#A8A29E]">Compatível com Excel</p>
+                </div>
+              </button>
+              <div className="border-t border-[#F5F4F0]" />
+              <button
+                onClick={handleExportPdf}
+                className="w-full flex items-center gap-2.5 px-4 py-3 text-[12.5px] font-medium text-[#1C1917] hover:bg-[#F5F4F0] transition-colors cursor-pointer text-left"
+              >
+                <div className="w-7 h-7 rounded-[7px] bg-[#FEF2F2] flex items-center justify-center shrink-0">
+                  <svg width="13" height="13" fill="none" stroke="#EF4444" strokeWidth="2" viewBox="0 0 24 24">
+                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><polyline points="14 2 14 8 20 8" />
+                    <line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-[12.5px] font-semibold text-[#1C1917]">Exportar PDF</p>
+                  <p className="text-[10.5px] text-[#A8A29E]">Relatório formatado 2 págs.</p>
+                </div>
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* ── Stats ── */}
@@ -590,7 +626,7 @@ export default function ReportsPage() {
       {/* ── Main card ── */}
       <div className="bg-white rounded-[14px] border border-[#F0EDEB] overflow-hidden">
 
-        {/* ── Filters bar ── */}
+        {/* Filters */}
         <div className="px-5 pt-5 pb-4 border-b border-[#F5F4F0] flex flex-col gap-3">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div>
@@ -600,10 +636,8 @@ export default function ReportsPage() {
               </p>
             </div>
             {hasActiveFilters && (
-              <button
-                onClick={handleReset}
-                className="flex items-center gap-1.5 text-[11.5px] font-medium text-[#EF4444] bg-[#FEF2F2] border border-[#FECACA] px-3 py-[5px] rounded-full hover:bg-[#FEE2E2] transition-colors cursor-pointer"
-              >
+              <button onClick={handleReset}
+                className="flex items-center gap-1.5 text-[11.5px] font-medium text-[#EF4444] bg-[#FEF2F2] border border-[#FECACA] px-3 py-[5px] rounded-full hover:bg-[#FEE2E2] transition-colors cursor-pointer">
                 <svg width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                   <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
                 </svg>
@@ -611,105 +645,56 @@ export default function ReportsPage() {
               </button>
             )}
           </div>
-
-          {/* Filter row */}
           <div className="flex items-center gap-2 flex-wrap">
-
-            {/* Status */}
-            <select
-              value={filters.status}
-              onChange={e => setFilter("status", e.target.value)}
-              className="border border-[#E7E5E4] rounded-[8px] px-3 py-[6px] text-[12px] text-[#78716C] outline-none focus:border-[#F97316] bg-white cursor-pointer"
-            >
+            <select value={filters.status} onChange={e => setFilter("status", e.target.value)}
+              className="border border-[#E7E5E4] rounded-[8px] px-3 py-[6px] text-[12px] text-[#78716C] outline-none focus:border-[#F97316] bg-white cursor-pointer">
               <option value="">Todos os estados</option>
-              {Object.entries(STATUS_CFG).map(([k, v]) => (
-                <option key={k} value={k}>{v.label}</option>
-              ))}
+              {Object.entries(STATUS_CFG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
             </select>
-
-            {/* Método */}
-            <select
-              value={filters.payment_method}
-              onChange={e => setFilter("payment_method", e.target.value)}
-              className="border border-[#E7E5E4] rounded-[8px] px-3 py-[6px] text-[12px] text-[#78716C] outline-none focus:border-[#F97316] bg-white cursor-pointer"
-            >
+            <select value={filters.payment_method} onChange={e => setFilter("payment_method", e.target.value)}
+              className="border border-[#E7E5E4] rounded-[8px] px-3 py-[6px] text-[12px] text-[#78716C] outline-none focus:border-[#F97316] bg-white cursor-pointer">
               <option value="">Todos os métodos</option>
-              {Object.entries(METHOD_LABELS).map(([k, v]) => (
-                <option key={k} value={k}>{v}</option>
-              ))}
+              {Object.entries(METHOD_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
             </select>
-
-            {/* Data de */}
             <div className="flex items-center gap-1.5">
               <label className="text-[11.5px] text-[#9CA3AF] shrink-0">De</label>
-              <input
-                type="date"
-                value={filters.date_from}
-                onChange={e => setFilter("date_from", e.target.value)}
-                className="border border-[#E7E5E4] rounded-[8px] px-3 py-[6px] text-[12px] text-[#78716C] outline-none focus:border-[#F97316] bg-white cursor-pointer"
-              />
+              <input type="date" value={filters.date_from} onChange={e => setFilter("date_from", e.target.value)}
+                className="border border-[#E7E5E4] rounded-[8px] px-3 py-[6px] text-[12px] text-[#78716C] outline-none focus:border-[#F97316] bg-white cursor-pointer" />
             </div>
             <div className="flex items-center gap-1.5">
               <label className="text-[11.5px] text-[#9CA3AF] shrink-0">Até</label>
-              <input
-                type="date"
-                value={filters.date_to}
-                onChange={e => setFilter("date_to", e.target.value)}
-                className="border border-[#E7E5E4] rounded-[8px] px-3 py-[6px] text-[12px] text-[#78716C] outline-none focus:border-[#F97316] bg-white cursor-pointer"
-              />
+              <input type="date" value={filters.date_to} onChange={e => setFilter("date_to", e.target.value)}
+                className="border border-[#E7E5E4] rounded-[8px] px-3 py-[6px] text-[12px] text-[#78716C] outline-none focus:border-[#F97316] bg-white cursor-pointer" />
             </div>
-
-            {/* Ordenação */}
-            <select
-              value={filters.sort_by}
-              onChange={e => setFilter("sort_by", e.target.value)}
-              className="border border-[#E7E5E4] rounded-[8px] px-3 py-[6px] text-[12px] text-[#78716C] outline-none focus:border-[#F97316] bg-white cursor-pointer"
-            >
+            <select value={filters.sort_by} onChange={e => setFilter("sort_by", e.target.value)}
+              className="border border-[#E7E5E4] rounded-[8px] px-3 py-[6px] text-[12px] text-[#78716C] outline-none focus:border-[#F97316] bg-white cursor-pointer">
               {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
-            <button
-              onClick={() => setFilter("sort_order", filters.sort_order === "asc" ? "desc" : "asc")}
-              className="w-[34px] h-[34px] flex items-center justify-center border border-[#E7E5E4] rounded-[8px] text-[#78716C] hover:border-[#F97316] hover:text-[#F97316] transition-all cursor-pointer bg-white"
-              title={filters.sort_order === "asc" ? "Crescente" : "Decrescente"}
-            >
+            <button onClick={() => setFilter("sort_order", filters.sort_order === "asc" ? "desc" : "asc")}
+              className="w-[34px] h-[34px] flex items-center justify-center border border-[#E7E5E4] rounded-[8px] text-[#78716C] hover:border-[#F97316] hover:text-[#F97316] transition-all cursor-pointer bg-white">
               {filters.sort_order === "asc" ? (
-                <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <line x1="12" y1="19" x2="12" y2="5" /><polyline points="5 12 12 5 19 12" />
-                </svg>
+                <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><line x1="12" y1="19" x2="12" y2="5" /><polyline points="5 12 12 5 19 12" /></svg>
               ) : (
-                <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <line x1="12" y1="5" x2="12" y2="19" /><polyline points="19 12 12 19 5 12" />
-                </svg>
+                <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19" /><polyline points="19 12 12 19 5 12" /></svg>
               )}
             </button>
-
-            {/* Per page */}
-            <select
-              value={filters.per_page}
-              onChange={e => setFilter("per_page", Number(e.target.value))}
-              className="border border-[#E7E5E4] rounded-[8px] px-3 py-[6px] text-[12px] text-[#78716C] outline-none focus:border-[#F97316] bg-white cursor-pointer"
-            >
+            <select value={filters.per_page} onChange={e => setFilter("per_page", Number(e.target.value))}
+              className="border border-[#E7E5E4] rounded-[8px] px-3 py-[6px] text-[12px] text-[#78716C] outline-none focus:border-[#F97316] bg-white cursor-pointer">
               {[10, 25, 50, 100].map(n => <option key={n} value={n}>{n} / página</option>)}
             </select>
-
-            {/* Search */}
             <div className="relative ml-auto">
               <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-[#C4C0BB]" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                 <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
               </svg>
-              <input
-                id="report-search"
-                type="text"
-                defaultValue={filters.search}
+              <input id="report-search" type="text" defaultValue={filters.search}
                 onChange={e => handleSearchChange(e.target.value)}
                 placeholder="ID, atendente, produto..."
-                className="pl-8 pr-3 py-[6px] text-[12.5px] border border-[#E7E5E4] rounded-[8px] outline-none focus:border-[#F97316] focus:ring-2 focus:ring-[#F97316]/20 transition-all w-[210px] text-[#1C1917]"
-              />
+                className="pl-8 pr-3 py-[6px] text-[12.5px] border border-[#E7E5E4] rounded-[8px] outline-none focus:border-[#F97316] focus:ring-2 focus:ring-[#F97316]/20 transition-all w-[210px] text-[#1C1917]" />
             </div>
           </div>
         </div>
 
-        {/* ── Loading skeleton ── */}
+        {/* Loading */}
         {isLoading && (
           <div className="p-5 flex flex-col gap-2">
             {Array.from({ length: 8 }).map((_, i) => (
@@ -718,7 +703,7 @@ export default function ReportsPage() {
           </div>
         )}
 
-        {/* ── Empty state ── */}
+        {/* Empty */}
         {!isLoading && orders.length === 0 && (
           <div className="p-12 flex flex-col items-center gap-3 text-center">
             <div className="w-12 h-12 rounded-[14px] bg-[#F5F4F0] flex items-center justify-center">
@@ -731,28 +716,19 @@ export default function ReportsPage() {
           </div>
         )}
 
-        {/* ── Table ── */}
+        {/* Table */}
         {!isLoading && orders.length > 0 && (
           <div className="overflow-x-auto">
             <table className="w-full border-collapse min-w-[860px]">
               <thead>
                 <tr>
                   {TABLE_COLS.map(col => (
-                    <th
-                      key={col.key}
-                      onClick={() => col.sortable && handleSort(col.key === "opened_at" ? "opened_at" : col.key)}
-                      className={`text-[10.5px] font-semibold text-[#C4C0BB] uppercase tracking-wider text-left px-4 py-3 border-b border-[#F5F4F0] whitespace-nowrap
-                        ${col.sortable ? "cursor-pointer hover:text-[#78716C] select-none" : ""}`}
-                    >
+                    <th key={col.key}
+                      onClick={() => col.sortable && handleSort(col.key)}
+                      className={`text-[10.5px] font-semibold text-[#C4C0BB] uppercase tracking-wider text-left px-4 py-3 border-b border-[#F5F4F0] whitespace-nowrap ${col.sortable ? "cursor-pointer hover:text-[#78716C] select-none" : ""}`}>
                       <span className="flex items-center">
                         {col.label}
-                        {col.sortable && (
-                          <SortIcon
-                            field={col.key === "opened_at" ? "opened_at" : col.key}
-                            current={filters.sort_by}
-                            order={filters.sort_order}
-                          />
-                        )}
+                        {col.sortable && <SortIcon field={col.key} current={filters.sort_by} order={filters.sort_order} />}
                       </span>
                     </th>
                   ))}
@@ -762,11 +738,8 @@ export default function ReportsPage() {
                 {orders.map(order => {
                   const payment = order.payments[0] ?? null
                   return (
-                    <tr
-                      key={order.id}
-                      onClick={() => setSelectedOrder(order)}
-                      className="cursor-pointer hover:[&>td]:bg-[#FDFCFC] transition-colors"
-                    >
+                    <tr key={order.id} onClick={() => setSelectedOrder(order)}
+                      className="cursor-pointer hover:[&>td]:bg-[#FDFCFC] transition-colors">
                       <td className="px-4 py-3 border-b border-[#FAFAF9]">
                         <span className="text-[12.5px] font-bold text-[#1C1917]">#{order.id}</span>
                       </td>
@@ -776,13 +749,9 @@ export default function ReportsPage() {
                       <td className="px-4 py-3 border-b border-[#FAFAF9]">
                         <div className="flex flex-col gap-[2px]">
                           {order.items.slice(0, 2).map(item => (
-                            <span key={item.id} className="text-[12px] text-[#78716C]">
-                              {item.quantity}× {item.product.name}
-                            </span>
+                            <span key={item.id} className="text-[12px] text-[#78716C]">{item.quantity}× {item.product.name}</span>
                           ))}
-                          {order.items.length > 2 && (
-                            <span className="text-[11px] text-[#A8A29E]">+{order.items.length - 2} mais</span>
-                          )}
+                          {order.items.length > 2 && <span className="text-[11px] text-[#A8A29E]">+{order.items.length - 2} mais</span>}
                         </div>
                       </td>
                       <td className="px-4 py-3 border-b border-[#FAFAF9]">
@@ -805,14 +774,10 @@ export default function ReportsPage() {
                           <span className="text-[11px] text-[#A8A29E]">{fmtTime(order.opened_at)}</span>
                         </div>
                       </td>
+                      <td className="px-4 py-3 border-b border-[#FAFAF9]"><StatusBadge status={order.status} /></td>
                       <td className="px-4 py-3 border-b border-[#FAFAF9]">
-                        <StatusBadge status={order.status} />
-                      </td>
-                      <td className="px-4 py-3 border-b border-[#FAFAF9]">
-                        <button
-                          onClick={e => { e.stopPropagation(); setSelectedOrder(order) }}
-                          className="w-7 h-7 flex items-center justify-center rounded-[6px] bg-transparent border border-[#E7E5E4] text-[#C4C0BB] hover:bg-[#F5F4F0] hover:text-[#78716C] transition-all cursor-pointer"
-                        >
+                        <button onClick={e => { e.stopPropagation(); setSelectedOrder(order) }}
+                          className="w-7 h-7 flex items-center justify-center rounded-[6px] bg-transparent border border-[#E7E5E4] text-[#C4C0BB] hover:bg-[#F5F4F0] hover:text-[#78716C] transition-all cursor-pointer">
                           <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                             <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" />
                           </svg>
@@ -826,19 +791,11 @@ export default function ReportsPage() {
           </div>
         )}
 
-        {/* ── Pagination ── */}
         {!isLoading && orders.length > 0 && (
-          <Pagination
-            page={pagination.currentPage}
-            lastPage={pagination.lastPage}
-            from={pagination.from}
-            to={pagination.to}
-            total={pagination.total}
-            onChange={handlePage}
-          />
+          <Pagination page={pagination.currentPage} lastPage={pagination.lastPage}
+            from={pagination.from} to={pagination.to} total={pagination.total} onChange={handlePage} />
         )}
 
-        {/* ── Legend ── */}
         {!isLoading && orders.length > 0 && (
           <div className="px-5 py-3 border-t border-[#F5F4F0] flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-4 flex-wrap">
@@ -858,10 +815,11 @@ export default function ReportsPage() {
         )}
       </div>
 
-      {/* ── Modal ── */}
-      {selectedOrder && (
-        <OrderDetailModal order={selectedOrder} onClose={() => setSelectedOrder(null)} />
-      )}
+      {selectedOrder && <OrderDetailModal order={selectedOrder} onClose={() => setSelectedOrder(null)} />}
+
+      <style>{`
+        @keyframes slideUp { from { opacity: 0; transform: translateY(6px) } to { opacity: 1; transform: translateY(0) } }
+      `}</style>
     </div>
   )
 }
